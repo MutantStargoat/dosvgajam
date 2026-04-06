@@ -8,10 +8,13 @@
 #include "dosutil.h"
 
 #define VGA_MODEX
+/* TODO: change for horiz. scrolling */
+#define VGA_PITCH	80
 
 #else
 
 #define VGA_LFB
+#define VGA_PITCH	320
 
 #endif
 

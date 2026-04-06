@@ -2,7 +2,8 @@
 #include "vga.h"
 #include "g3d/g3d.h"
 #include "imago2.h"
-
+#include "tiles.h"
+#include "level.h"
 
 static struct g3d_vertex cube_varr[] = {
 /*       x         y         z        w     u  v cidx lit       */
@@ -25,12 +26,12 @@ static uint16_t cube_faces[] = {
 };
 
 static struct img_pixmap bgimg;
-
+static struct tilesheet tilesheet;
 
 static int scrgame_init(void)
 {
 	img_init(&bgimg);
-	if(img_load(&bgimg, "data/bgimg2.png") == -1) {
+	if(img_load(&bgimg, "data/bgimg.png") == -1) {
 		fprintf(stderr, "failed to load bgimage\n");
 		return -1;
 	}
@@ -38,12 +39,19 @@ static int scrgame_init(void)
 		fprintf(stderr, "failed to offset bgimage colormap\n");
 		return -1;
 	}
+
+	if(tiles_load(&tilesheet, "data/tiles.png") == -1) {
+		fprintf(stderr, "failed to load tiles\n");
+		return -1;
+	}
+	tiles_define(&tilesheet, 0, 192, TILE_XSZ, TILE_YSZ);
 	return 0;
 }
 
 static void scrgame_destroy(void)
 {
 	img_destroy(&bgimg);
+	tiles_destroy(&tilesheet);
 }
 
 static int scrgame_start(void)
@@ -74,18 +82,9 @@ static void scrgame_display(void)
 	unsigned int anim = time_msec >> 3;
 
 	/*vga_clearfb(0);*/
-	vga_blitfb(vga_backbuf, bgimg.pixels);
+	vga_blitfb(VGA_VMEM, bgimg.pixels);
 
-	mat_trans(xform, 0, 0, -0x70000);
-	mat_mul_rotx(xform, anim);
-	mat_mul_roty(xform, anim);
-	g3d_modelview(xform);
-
-	g3d_fbpixels = vga_backbuf;
-
-	g3d_draw_indexed(G3D_QUADS, cube_varr, cube_faces, 24);
-
-	vga_pgflip(1);
+	tiles_blit_key(tilesheet.tiles, VGA_VMEM + VGA_PITCH * 20 + 20);
 }
 
 static void scrgame_keyb(int key, int press)

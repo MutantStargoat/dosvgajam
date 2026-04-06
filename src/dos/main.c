@@ -5,6 +5,7 @@
 #include "vga.h"
 #include "options.h"
 #include "logger.h"
+#include "timer.h"
 
 static int quit;
 

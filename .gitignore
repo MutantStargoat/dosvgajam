@@ -30,5 +30,8 @@ game
 *.zip
 *.ZIP
 data/
+datasrc/
 core.*
 core
+.cache/
+*.json
