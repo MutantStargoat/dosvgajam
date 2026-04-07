@@ -287,4 +287,6 @@ int strncasecmp(const char *a, const char *b, size_t n);
 unsigned int next_pow2(unsigned int x);
 unsigned int calc_shift(unsigned int x);
 
+#define BOUNDCHK(x, max)	(*(unsigned int*)&(x) < (max))
+
 #endif	/* UTIL_H_ */

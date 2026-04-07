@@ -1,73 +1,48 @@
+#include <stdio.h>
 #include "app.h"
 #include "vga.h"
-#include "g3d/g3d.h"
-#include "imago2.h"
 #include "tiles.h"
 #include "level.h"
 
-static struct g3d_vertex cube_varr[] = {
-/*       x         y         z        w     u  v cidx lit       */
-	{-0x10000, -0x10000,  0x10000, 0x10000, 0, 0, 6, 15},
-	{ 0x10000, -0x10000,  0x10000, 0x10000, 0, 0, 1, 15},
-	{ 0x10000, -0x10000, -0x10000, 0x10000, 0, 0, 2, 15},
-	{-0x10000, -0x10000, -0x10000, 0x10000, 0, 0, 3, 15},
-	{-0x10000,  0x10000,  0x10000, 0x10000, 0, 0, 4, 15},
-	{ 0x10000,  0x10000,  0x10000, 0x10000, 0, 0, 0, 0},
-	{ 0x10000,  0x10000, -0x10000, 0x10000, 0, 0, 0, 0},
-	{-0x10000,  0x10000, -0x10000, 0x10000, 0, 0, 5, 15}
-};
-static uint16_t cube_faces[] = {
-	0, 1, 5, 4,
-	1, 2, 6, 5,
-	2, 3, 7, 6,
-	7, 3, 0, 4,
-	4, 5, 6, 7,
-	3, 2, 1, 0
-};
+static struct tilesheet tiles;
 
-static struct img_pixmap bgimg;
-static struct tilesheet tilesheet;
+#define MAX_DIRTY	16
+static struct rect vport;
+static struct rect dirty[MAX_DIRTY];
+static int ndirty;
 
 static int scrgame_init(void)
 {
-	img_init(&bgimg);
-	if(img_load(&bgimg, "data/bgimg.png") == -1) {
-		fprintf(stderr, "failed to load bgimage\n");
-		return -1;
-	}
-	if(img_color_offset(&bgimg, 16) == -1) {
-		fprintf(stderr, "failed to offset bgimage colormap\n");
-		return -1;
-	}
-
-	if(tiles_load(&tilesheet, "data/tiles.png") == -1) {
+	if(tiles_load(&tiles, "data/tiles.png") == -1) {
 		fprintf(stderr, "failed to load tiles\n");
 		return -1;
 	}
-	tiles_define(&tilesheet, 0, 192, TILE_XSZ, TILE_YSZ);
+	tiles_define(&tiles, 0, 192, TILE_XSZ, TILE_YSZ);
+	tiles_define(&tiles, 32, 192, TILE_XSZ, TILE_YSZ);
+	tiles_define(&tiles, 64, 192, TILE_XSZ, TILE_YSZ);
 	return 0;
 }
 
 static void scrgame_destroy(void)
 {
-	img_destroy(&bgimg);
-	tiles_destroy(&tilesheet);
+	tiles_destroy(&tiles);
 }
 
 static int scrgame_start(void)
 {
 	int i;
-	int32_t proj[16];
-	struct img_colormap *cmap;
 
-	mat_perspective(proj, 50, (4 << 16) / 3, 0x8000, 0x100000);
-	g3d_projection(proj);
-
-	cmap = img_colormap(&bgimg);
-	for(i=0; i<cmap->ncolors; i++) {
-		vga_setpal(i == 0 ? 16 : -1, cmap->color[i].r, cmap->color[i].g, cmap->color[i].b);
+	vga_setpal(0, 0, 0, 0);
+	for(i=1; i<tiles.ncolors; i++) {
+		vga_setpal(-1, tiles.cmap[i].r, tiles.cmap[i].g, tiles.cmap[i].b);
 	}
-	vga_setpal(255, 255, 255, 255);
+
+	vport.x = vport.y = 50;
+	vport.w = 200;
+	vport.h = 150;
+
+	dirty[0] = vport;
+	ndirty = 1;
 
 	return 0;
 }
@@ -76,15 +51,26 @@ static void scrgame_stop(void)
 {
 }
 
+struct level lvl;
+
 static void scrgame_display(void)
 {
-	int32_t xform[16];
-	unsigned int anim = time_msec >> 3;
+	int i, cx, cy, sx, sy;
+	struct level_cell *cell;
 
-	/*vga_clearfb(0);*/
-	vga_blitfb(VGA_VMEM, bgimg.pixels);
+	/* invalidate cells in the dirty rects */
+	for(i=0; i<ndirty; i++) {
+		vscr_to_cell(dirty[i].x, dirty[i].y, &cx, &cy);
+		if((cell = get_level_cell(&lvl, cx, cy))) {
+			draw_level_cell(&lvl, cell, 0);
+		}
+	}
+	ndirty = 0;
 
-	tiles_blit_key(tilesheet.tiles, VGA_VMEM + VGA_PITCH * 20 + 20);
+	tiles_blit_key(tiles.tiles, 20, 20);
+	tiles_blit_key(tiles.tiles + 1, 36, 28);
+	tiles_blit_key(tiles.tiles + 2, 20, 36);
+	ndirty = 0;
 }
 
 static void scrgame_keyb(int key, int press)

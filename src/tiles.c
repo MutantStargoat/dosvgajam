@@ -19,7 +19,7 @@ int tiles_load(struct tilesheet *ts, const char *fname)
 	ts->height = img->height;
 	ts->pitch = img->width;
 	if(next_pow2(ts->pitch - 1) == ts->pitch) {
-		ts->xshift = calc_shift(img->pitch);
+		ts->xshift = calc_shift(ts->pitch);
 	} else {
 		ts->xshift = 0;
 	}
@@ -30,6 +30,7 @@ int tiles_load(struct tilesheet *ts, const char *fname)
 	ts->pscansz = ts->pitch >> 2;
 	ts->psize = ts->pscansz * img->height;
 	memcpy(ts->cmap, img->cmap, sizeof ts->cmap);
+	ts->ncolors = img->ncolors;
 	ts->ckey = 0;
 
 	ts->tiles = dynarr_alloc_nf(0, sizeof *ts->tiles);
@@ -69,18 +70,22 @@ void tiles_define(struct tilesheet *ts, int x, int y, int w, int h)
 #error "LFB tiles_blit_key unimplemented"
 #endif
 
-void tiles_blit_key(struct tileimg *tile, uint8_t *fbptr)
+void tiles_blit_key(struct tileimg *tile, int x, int y)
 {
-	int i, j, k;
+	int i, j, k, offs;
+	unsigned int mask;
 	unsigned int bpwidth = tile->width >> 2;
 	unsigned int srcpitch = tile->sheet->pscansz;
 	uint8_t *src, *dst, ckey = tile->sheet->ckey;
 	/* TODO RLE blit */
 
+	offs = y * VGA_PITCH + (x >> 2);
+	mask = 1 << (x & 3);
+
 	for(k=0; k<4; k++) {
-		vga_planemask(1 << k);
+		vga_planemask(mask);
 		src = tile->planeptr[k];
-		dst = fbptr;
+		dst = VGA_VMEM + offs;
 		for(i=0; i<tile->height; i++) {
 			for(j=0; j<bpwidth; j++) {
 				uint8_t pixel = src[j];
@@ -90,6 +95,12 @@ void tiles_blit_key(struct tileimg *tile, uint8_t *fbptr)
 			}
 			dst += VGA_PITCH;
 			src += srcpitch;
+		}
+
+		mask = (mask << 1) & 0xf;
+		if(!mask) {
+			mask = 1;
+			offs++;
 		}
 	}
 }

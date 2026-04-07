@@ -9,7 +9,6 @@ struct imgcolor {
 
 struct image {
 	int width, height;
-	unsigned int pitch;
 	uint8_t *pixels, *plane[4];
 	struct imgcolor cmap[256];
 	int ncolors;

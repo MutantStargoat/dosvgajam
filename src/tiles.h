@@ -12,6 +12,7 @@ struct tilesheet {
 	int xshift;
 	uint8_t *pixels, *plane[4];
 	struct imgcolor cmap[256];
+	unsigned int ncolors;
 	uint8_t ckey;
 
 	struct tileimg *tiles;	/* dynarr */
@@ -30,6 +31,6 @@ void tiles_destroy(struct tilesheet *ts);
 
 void tiles_define(struct tilesheet *ts, int x, int y, int w, int h);
 
-void tiles_blit_key(struct tileimg *tile, uint8_t *fbptr);
+void tiles_blit_key(struct tileimg *tile, int x, int y);
 
 #endif	/* TILESHEET_H_ */

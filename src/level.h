@@ -12,8 +12,12 @@
 #define CELL_XSZ	(TILE_XSZ << 1)
 #define CELL_YSZ	(TILE_YSZ << 1)
 
+struct rect {
+	unsigned int x, y, w, h;
+};
+
 struct tilemap_layer {
-	unsigned short *tiles;
+	unsigned int *tiles;
 };
 
 struct tilemap {
@@ -22,20 +26,36 @@ struct tilemap {
 };
 
 enum {
-	CELL_EXIT_N	= 0x100,
-	CELL_EXIT_W	= 0x200,
-	CELL_EXIT_S	= 0x400,
-	CELL_EXIT_E	= 0x800
+	CELL_EXIT_N	= 0x0100,
+	CELL_EXIT_W	= 0x0200,
+	CELL_EXIT_S	= 0x0400,
+	CELL_EXIT_E	= 0x0800
 };
 
 struct level_cell {
-	unsigned short flags;
+	int cx, cy;				/* cell coordinates */
+	unsigned int flags;
+
+	struct level_cell *dirty_next;
 };
 
 struct level {
-	struct tilemap tilemap;
+	struct tilesheet *tsheet;
+	struct tilemap tmap;
+
+	int size, shift;
 	struct level_cell *cells;
 };
+
+int create_level(struct level *lvl, int sz);
+void destroy_level(struct level *lvl);
+
+/* get hte cell cx,cy */
+struct level_cell *get_level_cell(struct level *lvl, int cx, int cy);
+/* get the cell at virtual screen coords sx, sy */
+struct level_cell *get_level_cell_vscr(struct level *lvl, int sx, int sy);
+
+struct tileimg *get_cell_tile(struct level *lvl, struct level_cell *cell, int n, int layer);
 
 /* conversion between virtual screen and grid coordinates (24.8 fixed point) */
 static INLINE void vscr_to_grid(int sx, int sy, int32_t *gridx, int32_t *gridy)
