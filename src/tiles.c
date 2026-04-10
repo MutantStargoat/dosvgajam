@@ -8,11 +8,21 @@
 #include "vga.h"
 
 
-int tiles_load(struct tilesheet *ts, const char *fname)
+int tiles_load(struct tileset *ts, const char *fname)
 {
 	struct image *img;
+	char *path;
 
-	if(!(img = load_image(fname))) {
+	ts->name = strdup_nf(fname);
+
+	if(!strstr(fname, "data/")) {
+		path = alloca(strlen(fname) + 6);
+		sprintf(path, "data/%s", fname);
+	} else {
+		path = (char*)fname;
+	}
+
+	if(!(img = load_image(path))) {
 		return -1;
 	}
 	ts->width = img->width;
@@ -23,6 +33,7 @@ int tiles_load(struct tilesheet *ts, const char *fname)
 	} else {
 		ts->xshift = 0;
 	}
+	ts->pixels = img->pixels;
 	ts->plane[0] = img->plane[0];
 	ts->plane[1] = img->plane[1];
 	ts->plane[2] = img->plane[2];
@@ -37,20 +48,25 @@ int tiles_load(struct tilesheet *ts, const char *fname)
 	return 0;
 }
 
-void tiles_destroy(struct tilesheet *ts)
+void tiles_destroy(struct tileset *ts)
 {
+	int i;
+
+	free(ts->name);
 	free(ts->pixels);
+
+	for(i=0; i<dynarr_size(ts->tiles); i++) {
+		free(ts->tiles[i]);
+	}
 	dynarr_free(ts->tiles);
 	free(ts->plane[0]);
 }
 
-void tiles_define(struct tilesheet *ts, int x, int y, int w, int h)
+struct tileimg *tiles_define(struct tileset *ts, int x, int y, int w, int h)
 {
-	int i;
-	struct tileimg *tile;
+	struct tileimg *tile = malloc_nf(sizeof *tile);
 
-	tile = ts->tiles + dynarr_size(ts->tiles);
-	dynarr_push_nf(ts->tiles, 0);
+	dynarr_push_nf(ts->tiles, &tile);
 
 	tile->sheet = ts;
 	tile->x = x;
@@ -64,11 +80,32 @@ void tiles_define(struct tilesheet *ts, int x, int y, int w, int h)
 	tile->planeptr[1] = tile->planeptr[0] + ts->psize;
 	tile->planeptr[2] = tile->planeptr[1] + ts->psize;
 	tile->planeptr[3] = tile->planeptr[2] + ts->psize;
+
+	return tile;
 }
 
 #ifdef VGA_LFB
-#error "LFB tiles_blit_key unimplemented"
-#endif
+void tiles_blit_key(struct tileimg *tile, int x, int y)
+{
+	int i, j;
+	uint8_t *src, *dst, ckey = tile->sheet->ckey;
+
+	src = tile->imgptr;
+	dst = vga_backbuf + y * VGA_PITCH + x;
+
+	for(i=0; i<tile->height; i++) {
+		for(j=0; j<tile->width; j++) {
+			uint8_t pixel = src[j];
+			if(pixel != ckey) {
+				dst[j] = pixel;
+			}
+		}
+		dst += VGA_PITCH;
+		src += tile->sheet->pscansz;
+	}
+}
+
+#else
 
 void tiles_blit_key(struct tileimg *tile, int x, int y)
 {
@@ -104,3 +141,4 @@ void tiles_blit_key(struct tileimg *tile, int x, int y)
 		}
 	}
 }
+#endif

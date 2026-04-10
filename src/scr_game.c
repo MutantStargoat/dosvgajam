@@ -3,8 +3,9 @@
 #include "vga.h"
 #include "tiles.h"
 #include "level.h"
+#include "rend.h"
 
-static struct tilesheet tiles;
+static struct level lvl;
 
 #define MAX_DIRTY	16
 static struct rect vport;
@@ -13,19 +14,16 @@ static int ndirty;
 
 static int scrgame_init(void)
 {
-	if(tiles_load(&tiles, "data/tiles.png") == -1) {
-		fprintf(stderr, "failed to load tiles\n");
+	if(load_level(&lvl, "data/dbglevel.tmj") == -1) {
 		return -1;
 	}
-	tiles_define(&tiles, 0, 192, TILE_XSZ, TILE_YSZ);
-	tiles_define(&tiles, 32, 192, TILE_XSZ, TILE_YSZ);
-	tiles_define(&tiles, 64, 192, TILE_XSZ, TILE_YSZ);
+
 	return 0;
 }
 
 static void scrgame_destroy(void)
 {
-	tiles_destroy(&tiles);
+	destroy_level(&lvl);
 }
 
 static int scrgame_start(void)
@@ -33,8 +31,8 @@ static int scrgame_start(void)
 	int i;
 
 	vga_setpal(0, 0, 0, 0);
-	for(i=1; i<tiles.ncolors; i++) {
-		vga_setpal(-1, tiles.cmap[i].r, tiles.cmap[i].g, tiles.cmap[i].b);
+	for(i=1; i<tileset.ncolors; i++) {
+		vga_setpal(-1, tileset.cmap[i].r, tileset.cmap[i].g, tileset.cmap[i].b);
 	}
 
 	vport.x = vport.y = 50;
@@ -51,26 +49,46 @@ static void scrgame_stop(void)
 {
 }
 
-struct level lvl;
-
 static void scrgame_display(void)
 {
-	int i, cx, cy, sx, sy;
+	int i, cx, cy, sx, sy, x, y;
 	struct level_cell *cell;
 
 	/* invalidate cells in the dirty rects */
 	for(i=0; i<ndirty; i++) {
 		vscr_to_cell(dirty[i].x, dirty[i].y, &cx, &cy);
-		if((cell = get_level_cell(&lvl, cx, cy))) {
-			draw_level_cell(&lvl, cell, 0);
+		cell_to_vscr(cx, cy, &sx, &sy);		/* top-left corner of first cell */
+
+		y = sy;
+		while(y < dirty[i].y + dirty[i].h) {
+			int start_cx = cx;
+			int start_cy = cy;
+			x = sx;
+			while(x < dirty[i].x + dirty[i].w) {
+				if((cell = get_level_cell(&lvl, cx, cy))) {
+					draw_level_cell(&lvl, cell, 0);
+				}
+				if((cell = get_level_cell(&lvl, cx, cy - 1))) {
+					draw_level_cell(&lvl, cell, 0);
+				}
+
+				x += CELL_XSZ;
+
+				/* check if we reach the edge of the map diamond */
+				if(++cx >= lvl.size) break;
+				if(--cy < 0) break;
+			}
+
+			y += CELL_YSZ;
+			cx = start_cx + 1;
+			cy = start_cy + 1;
 		}
 	}
 	ndirty = 0;
 
-	tiles_blit_key(tiles.tiles, 20, 20);
-	tiles_blit_key(tiles.tiles + 1, 36, 28);
-	tiles_blit_key(tiles.tiles + 2, 20, 36);
-	ndirty = 0;
+#ifdef VGA_LFB
+	vga_pgflip(1);
+#endif
 }
 
 static void scrgame_keyb(int key, int press)

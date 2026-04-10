@@ -1,39 +1,92 @@
+#include <stdio.h>
+#include <assert.h>
 #include "level.h"
 #include "tiles.h"
+#include "util.h"
 
-int create_level(struct level *lvl, int sz);
-void destroy_level(struct level *lvl);
+struct tileset tileset;
 
-/* get hte cell cx,cy */
-struct level_cell *get_level_cell(struct level *lvl, int cx, int cy);
-/* get the cell at virtual screen coords sx, sy */
-struct level_cell *get_level_cell_vscr(struct level *lvl, int sx, int sy);
+int create_level(struct level *lvl, int sz, int nlayers)
+{
+	int i;
+
+	lvl->tset = 0;
+
+	assert(nlayers <= MAX_LAYERS);
+
+	lvl->num_layers = nlayers;
+	lvl->size = sz;
+	lvl->shift = calc_shift(sz);
+
+	if(!(lvl->cells = calloc(sz * sz, sizeof *lvl->cells))) {
+		fprintf(stderr, "create_level: failed to allocate %dx%d cells\n", sz, sz);
+		return -1;
+	}
+
+	sz <<= 1;
+	lvl->tmap_size = sz;
+	lvl->tmap_shift = calc_shift(sz);
+
+	for(i=0; i<nlayers; i++) {
+		if(!(lvl->tmap[i] = calloc(sz * sz, sizeof *lvl->tmap[i]))) {
+			fprintf(stderr, "create_level: failed to allocate %dx%d tilemap layer\n", sz, sz);
+			while(--i >= 0) free(lvl->tmap[i]);
+			free(lvl->cells);
+			return -1;
+		}
+	}
+	return 0;
+}
+
+void destroy_level(struct level *lvl)
+{
+	int i;
+
+	if(!lvl) return;
+
+	free(lvl->cells);
+	for(i=0; i<lvl->num_layers; i++) {
+		free(lvl->tmap[i]);
+	}
+}
+
+/* NOTE load_level is defined in tiledfmt.c */
+
+struct level_cell *get_level_cell(struct level *lvl, int cx, int cy)
+{
+	if(!BOUNDCHK(cx, lvl->size) || !BOUNDCHK(cy, lvl->size)) {
+		return 0;
+	}
+	return lvl->cells + (cy << lvl->shift) + cx;
+}
+
+struct level_cell *get_level_cell_vscr(struct level *lvl, int sx, int sy)
+{
+	int cx, cy;
+	vscr_to_cell(sx, sy, &cx, &cy);
+	return get_level_cell(lvl, cx, cy);
+}
 
 struct tileimg *get_cell_tile(struct level *lvl, struct level_cell *cell, int n, int layer)
 {
 	int tx, ty;
-	unsigned int *mapptr, idx;
+	struct tileimg **mapptr;
 
 	tx = cell->cx << 1;
 	ty = cell->cy << 1;
-	mapptr = lvl->tmap.layer[layer].tiles + (ty << lvl->tmap.shift) + tx;
+	mapptr = lvl->tmap[layer] + (ty << lvl->tmap_shift) + tx;
 
 	switch(n) {
 	case 0:
-		idx = *mapptr;
-		break;
+		return mapptr[0];
 	case 1:
-		idx = mapptr[lvl->tmap.sz];
-		break;
+		return mapptr[lvl->tmap_size];
 	case 2:
-		idx = mapptr[1];
-		break;
+		return mapptr[1];
 	case 3:
-		idx = mapptr[lvl->tmap.sz + 1];
-		break;
+		return mapptr[lvl->tmap_size + 1];
 	default:
-		return 0;
+		break;
 	}
-
-	return idx ? lvl->tsheet->tiles + idx : 0
+	return 0;
 }

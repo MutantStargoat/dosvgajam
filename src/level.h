@@ -3,8 +3,9 @@
 
 #include "szint.h"
 #include "util.h"
+#include "tiles.h"
 
-#define NUM_LAYERS	2
+#define MAX_LAYERS	4
 
 #define TILE_XSZ	32
 #define TILE_YSZ	16
@@ -16,16 +17,10 @@ struct rect {
 	unsigned int x, y, w, h;
 };
 
-struct tilemap_layer {
-	unsigned int *tiles;
-};
-
-struct tilemap {
-	int sz, shift;
-	struct tilemap_layer layer[NUM_LAYERS];
-};
-
 enum {
+	CELL_OPEN	= 0x0001,
+	CELL_WALK	= 0x0003,	/* implies open */
+
 	CELL_EXIT_N	= 0x0100,
 	CELL_EXIT_W	= 0x0200,
 	CELL_EXIT_S	= 0x0400,
@@ -40,36 +35,44 @@ struct level_cell {
 };
 
 struct level {
-	struct tilesheet *tsheet;
-	struct tilemap tmap;
+	struct tileset *tset;		/* not owned by the level */
+
+	int tmap_size, tmap_shift;
+	struct tileimg **tmap[MAX_LAYERS];
+	int num_layers;
 
 	int size, shift;
 	struct level_cell *cells;
 };
 
-int create_level(struct level *lvl, int sz);
+extern struct tileset tileset;
+
+int create_level(struct level *lvl, int sz, int nlayers);
 void destroy_level(struct level *lvl);
 
-/* get hte cell cx,cy */
+int load_level(struct level *lvl, const char *fname);
+
+/* get the cell cx,cy */
 struct level_cell *get_level_cell(struct level *lvl, int cx, int cy);
 /* get the cell at virtual screen coords sx, sy */
 struct level_cell *get_level_cell_vscr(struct level *lvl, int sx, int sy);
 
 struct tileimg *get_cell_tile(struct level *lvl, struct level_cell *cell, int n, int layer);
 
+
 /* conversion between virtual screen and grid coordinates (24.8 fixed point) */
 static INLINE void vscr_to_grid(int sx, int sy, int32_t *gridx, int32_t *gridy)
 {
-	sx <<= 2;
-	sy <<= 3;
+	sx <<= 3;
+	sy <<= 4;
 	*gridx = (sy + sx) >> 1;
 	*gridy = (sy - sx) >> 1;
 }
 
 static INLINE void grid_to_vscr(int32_t gridx, int32_t gridy, int *sx, int *sy)
 {
-	*sx = (gridx - gridy) >> 2;
-	*sy = (gridx + gridy) >> 3;
+	*sx = (gridx - gridy) >> 3;
+	*sy = (gridx + gridy) >> 4;
 }
 
 /* conversion between virtual screen and cell indices */

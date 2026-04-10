@@ -6,7 +6,8 @@
 
 struct tileimg;
 
-struct tilesheet {
+struct tileset {
+	char *name;
 	int width, height;
 	unsigned int pitch, pscansz, psize;
 	int xshift;
@@ -15,21 +16,21 @@ struct tilesheet {
 	unsigned int ncolors;
 	uint8_t ckey;
 
-	struct tileimg *tiles;	/* dynarr */
+	struct tileimg **tiles;	/* dynarr */
 };
 
 struct tileimg {
-	struct tilesheet *sheet;
+	struct tileset *sheet;
 	int x, y, width, height;
 	uint8_t *imgptr;
 	uint8_t *planeptr[4];
 	unsigned char *rle;
 };
 
-int tiles_load(struct tilesheet *ts, const char *fname);
-void tiles_destroy(struct tilesheet *ts);
+int tiles_load(struct tileset *ts, const char *fname);
+void tiles_destroy(struct tileset *ts);
 
-void tiles_define(struct tilesheet *ts, int x, int y, int w, int h);
+struct tileimg *tiles_define(struct tileset *ts, int x, int y, int w, int h);
 
 void tiles_blit_key(struct tileimg *tile, int x, int y);
 

@@ -16,7 +16,8 @@ void draw_level_cell(struct level *lvl, struct level_cell *cell, int layer)
 	cell_to_vscr(cell->cx, cell->cy, &sx, &sy);
 
 	for(i=0; i<4; i++) {
-		tile = get_cell_tile(lvl, cell, i, layer);
-		tiles_blit_key(tile, sx + offs[i][0], sy + offs[i][1]);
+		if((tile = get_cell_tile(lvl, cell, i, layer))) {
+			tiles_blit_key(tile, sx + offs[i][0], sy + offs[i][1]);
+		}
 	}
 }
