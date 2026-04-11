@@ -8,17 +8,18 @@
 #include "dosutil.h"
 
 #define VGA_MODEX
+#define VGA_VMEM	((uint8_t*)0xa0000)
 /* TODO: change for horiz. scrolling */
 #define VGA_PITCH	80
 
 #else
 
+#define VGA_VMEM	vga_backbuf
 #define VGA_LFB
 #define VGA_PITCH	320
 
 #endif
 
-#define VGA_VMEM	((uint8_t*)0xa0000)
 extern uint8_t *vga_backbuf;
 
 int vga_setmodex(void);
@@ -32,6 +33,10 @@ void vga_blitfb(void *vmem, const void *img);
 
 void vga_pgflip(int wait_vblank);
 
+/* misc */
+void vga_vline(uint8_t *vmem, int x, int y, int len, uint8_t color);
+void vga_hline(uint8_t *vmem, int x, int y, int len, uint8_t color);
+void vga_rect_outline(uint8_t *vmem, int x, int y, int w, int h, uint8_t color);
 
 #ifdef MSDOS
 #define vga_planemask(mask)		vga_sc_write(VGA_SC_MAPMASK_REG, mask)

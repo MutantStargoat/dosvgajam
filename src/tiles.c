@@ -101,7 +101,7 @@ void tiles_blit_key(struct tileimg *tile, int x, int y)
 			}
 		}
 		dst += VGA_PITCH;
-		src += tile->sheet->pscansz;
+		src += tile->sheet->pitch;
 	}
 }
 

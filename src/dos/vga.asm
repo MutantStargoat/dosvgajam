@@ -1,6 +1,8 @@
 	section .text use32
 	bits 32
 
+VGA_PITCH	equ 80h
+
 SC_ADDR		equ 3c4h	; sequence controller address register
 CRTC_ADDR	equ 3d4h	; CRTC address register
 MISC_ADDR	equ 3c2h	; miscellaneous output register

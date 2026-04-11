@@ -34,6 +34,7 @@ static int scrgame_start(void)
 	for(i=1; i<tileset.ncolors; i++) {
 		vga_setpal(-1, tileset.cmap[i].r, tileset.cmap[i].g, tileset.cmap[i].b);
 	}
+	vga_setpal(0xff, 0xff, 0xff, 0xff);
 
 	vport.x = vport.y = 50;
 	vport.w = 200;
@@ -84,6 +85,8 @@ static void scrgame_display(void)
 			cy = start_cy + 1;
 		}
 	}
+
+	vga_rect_outline(VGA_VMEM, dirty[i].x, dirty[i].y, dirty[i].w, dirty[i].h, 0xff);
 	ndirty = 0;
 
 #ifdef VGA_LFB

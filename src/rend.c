@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "rend.h"
 #include "level.h"
 #include "tiles.h"

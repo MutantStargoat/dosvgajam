@@ -48,7 +48,7 @@ static void set_vsync(int vsync);
 
 int vga_setmodex(void)
 {
-	if(!(vga_backbuf = malloc(FB_WIDTH * FB_HEIGHT))) {
+	if(!(vga_backbuf = calloc(1, FB_WIDTH * FB_HEIGHT))) {
 		return -1;
 	}
 
@@ -97,6 +97,32 @@ void vga_blitfb(void *vmem, const void *img)
 	memcpy(vmem, img, FB_WIDTH * FB_HEIGHT);
 }
 
+void vga_vline(uint8_t *vmem, int x, int y, int len, uint8_t color)
+{
+	vmem += y * VGA_PITCH + x;
+
+	while(len-- > 0) {
+		*vmem = color;
+		vmem += VGA_PITCH;
+	}
+}
+
+void vga_hline(uint8_t *vmem, int x, int y, int len, uint8_t color)
+{
+	vmem += y * VGA_PITCH + x;
+
+	while(len-- > 0) {
+		*vmem++ = color;
+	}
+}
+
+void vga_rect_outline(uint8_t *vmem, int x, int y, int w, int h, uint8_t color)
+{
+	vga_vline(vmem, x, y, h, color);
+	vga_vline(vmem, x + w - 1, y, h, color);
+	vga_hline(vmem, x + 1, y, w - 2, color);
+	vga_hline(vmem, x + 1, y + h - 1, w - 2, color);
+}
 
 static uint32_t *convbuf;
 static int convbuf_size;
