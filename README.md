@@ -17,6 +17,11 @@ The game datafiles will be in their own subversion repo. Checkout with:
 
     svn co svn://mutantstargoat.com/datadirs/vgajam data
 
+Notes
+-----
+The isometric coordinate system has its origin at the top corner. X axis
+increases down and to the right, Y axis down and to the left.
+
 Calling conventions cheatsheet
 ------------------------------
 ### DJGPP

@@ -58,7 +58,7 @@ int main(int argc, char **argv)
 	glutMouseFunc(mouse_button);
 	glutMotionFunc(mouse_motion);
 
-	glutSetCursor(GLUT_CURSOR_NONE);
+	/*glutSetCursor(GLUT_CURSOR_NONE);*/
 
 	glDisable(GL_DITHER);
 #ifndef NO_GLTEX
@@ -301,6 +301,8 @@ static void mouse_button(int bn, int st, int x, int y)
 	} else {
 		mouse_bnstate &= ~(1 << bit);
 	}
+
+	app_mouse(bit, st == GLUT_DOWN, x, y);
 }
 
 static void mouse_motion(int x, int y)
@@ -308,6 +310,8 @@ static void mouse_motion(int x, int y)
 	map_mouse_pos(&x, &y);
 	mouse_x = x;
 	mouse_y = y;
+
+	app_motion(x, y);
 }
 
 static void set_fullscreen(int fs)

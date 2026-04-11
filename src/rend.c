@@ -6,10 +6,10 @@
 void draw_level_cell(struct level *lvl, struct level_cell *cell, int layer)
 {
 	static const int offs[][2] = {
-		{TILE_XSZ >> 1, 0},
-		{0, TILE_YSZ >> 1},
-		{TILE_XSZ, TILE_YSZ >> 1},
-		{TILE_XSZ >> 1, TILE_YSZ}
+		{-TILE_XSZ/2, 0},
+		{-TILE_XSZ, TILE_YSZ/2},
+		{0, TILE_YSZ/2},
+		{-TILE_XSZ/2, TILE_YSZ}
 	};
 	int i, sx, sy;
 	struct tileimg *tile;
