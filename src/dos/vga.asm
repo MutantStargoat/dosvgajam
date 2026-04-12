@@ -288,6 +288,7 @@ vga_scroll_:
 	out dx, al
 	mov eax, [_vga_xscroll]
 	and eax, 3
+	shl eax, 1
 	out dx, al
 
 	pop ebx
