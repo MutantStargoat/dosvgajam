@@ -2,12 +2,12 @@
 
 void vga_vline(uint8_t *vmem, int x, int y, int len, uint8_t color)
 {
-	vmem += y * VGA_PITCH + (x >> 2);
+	vmem += y * vga_pitch + (x >> 2);
 	vga_planemask(1 << (x & 3));
 
 	while(len-- > 0) {
 		*vmem = color;
-		vmem += VGA_PITCH;
+		vmem += vga_pitch;
 	}
 }
 
@@ -15,7 +15,7 @@ void vga_hline(uint8_t *vmem, int x, int y, int len, uint8_t color)
 {
 	uint32_t c4, *ptr32;
 	unsigned int align;
-	vmem += y * VGA_PITCH + (x >> 2);
+	vmem += y * vga_pitch + (x >> 2);
 
 	align = x & 3;
 	if(align != 0) {

@@ -5,6 +5,7 @@
 #include "vga.h"
 #include "options.h"
 #include "logger.h"
+#include "keyb.h"
 #include "timer.h"
 
 static int quit;
@@ -14,6 +15,7 @@ int main(int argc, char **argv)
 	load_options("game.cfg");
 	init_logger(opt.logfile);
 
+	kb_init();
 	init_timer(100);
 
 	if(app_init() == -1) {
@@ -23,10 +25,9 @@ int main(int argc, char **argv)
 	printf("cur screen: %s\n", cur_scr->name);
 
 	for(;;) {
-		while(kbhit()) {
-			if(getch() == 27) {
-				quit = 1;
-			}
+		int key;
+		while((key = kb_getkey()) != -1) {
+			app_keyboard(key, 1);
 			if(quit) goto end;
 		}
 
@@ -36,6 +37,7 @@ int main(int argc, char **argv)
 end:
 	save_options("game.cfg");
 	app_shutdown();
+	kb_shutdown();
 	stop_logger();
 	print_tail(opt.logfile);
 	return 0;
@@ -49,6 +51,7 @@ void app_quit(void)
 void app_abort(void)
 {
 	vga_cleanup();
+	kb_shutdown();
 	stop_logger();
 	print_tail(opt.logfile);
 	abort();

@@ -21,9 +21,13 @@
 #endif
 
 extern uint8_t *vga_backbuf;
+extern unsigned int vga_pitch;
+extern int vga_xscroll, vga_yscroll;
 
 int vga_setmodex(void);
 void vga_cleanup(void);
+
+void vga_setpitch(unsigned int pitch);
 
 /* idx -1 for repeat calls to skip setting the DAC address. r,g,b in [0,255] */
 void vga_setpal(int16_t idx, uint8_t r, uint8_t g, uint8_t b);
@@ -32,6 +36,7 @@ void vga_clearfb(unsigned int color);
 void vga_blitfb(void *vmem, const void *img);
 
 void vga_pgflip(int wait_vblank);
+void vga_scroll(int xoffs, int yoffs);
 
 /* misc */
 void vga_vline(uint8_t *vmem, int x, int y, int len, uint8_t color);

@@ -5,6 +5,9 @@
 #include "level.h"
 #include "rend.h"
 
+#define XSCROLL_MAX		CELL_XSZ
+#define YSCROLL_MAX		240
+
 static struct level lvl;
 
 #define MAX_DIRTY	16
@@ -43,33 +46,34 @@ static int scrgame_start(void)
 	dirty[0] = vport;
 	ndirty = 1;
 
+	vga_setpitch((320 + CELL_XSZ) / 4);
+
 	return 0;
 }
 
 static void scrgame_stop(void)
 {
+	vga_setpitch(320 / 4);
 }
 
 static void scrgame_display(void)
 {
-	int i, cx, cy, sx, sy, x, y;
+	int i, cx, cx0, cy, cy0, sx, sy, x, row;
 	struct level_cell *cell;
 
 	/* invalidate cells in the dirty rects */
 	for(i=0; i<ndirty; i++) {
 		vscr_to_cell(dirty[i].x, dirty[i].y, &cx, &cy);
-		cell_to_vscr(cx, cy, &sx, &sy);		/* top-left corner of first cell */
+		cell_to_vscr(cx, cy, &sx, &sy);		/* top corner of first cell */
+		sx -= CELL_XSZ / 2;					/* top-left bound */
 
-		y = sy;
-		while(y < dirty[i].y + dirty[i].h) {
-			int start_cx = cx;
-			int start_cy = cy;
-			x = sx;
+		row = 0;
+		while(sy < dirty[i].y + dirty[i].h) {
+			x = (row & 1) ? sx - CELL_XSZ / 2 : sx;
+			cx0 = cx;
+			cy0 = cy;
 			while(x < dirty[i].x + dirty[i].w) {
 				if((cell = get_level_cell(&lvl, cx, cy))) {
-					draw_level_cell(&lvl, cell, 0);
-				}
-				if((cell = get_level_cell(&lvl, cx, cy - 1))) {
 					draw_level_cell(&lvl, cell, 0);
 				}
 
@@ -80,9 +84,15 @@ static void scrgame_display(void)
 				if(--cy < 0) break;
 			}
 
-			y += CELL_YSZ;
-			cx = start_cx + 1;
-			cy = start_cy + 1;
+			sy += CELL_YSZ / 2;
+
+			if(row++ & 1) {
+				cx = cx0 + 1;
+				cy = cy0;
+			} else {
+				cx = cx0;
+				cy = cy0 + 1;
+			}
 		}
 	}
 
@@ -96,6 +106,36 @@ static void scrgame_display(void)
 
 static void scrgame_keyb(int key, int press)
 {
+	if(!press) return;
+
+	switch(key) {
+	case KEY_UP:
+		if(vga_yscroll > 0) {
+			vga_scroll(vga_xscroll, vga_yscroll - 1);
+		}
+		break;
+
+	case KEY_DOWN:
+		if(vga_yscroll < YSCROLL_MAX - 1) {
+			vga_scroll(vga_xscroll, vga_yscroll + 1);
+		}
+		break;
+
+	case KEY_LEFT:
+		if(vga_xscroll > 0) {
+			vga_scroll(vga_xscroll - 1, vga_yscroll);
+		}
+		break;
+
+	case KEY_RIGHT:
+		if(vga_yscroll < XSCROLL_MAX - 1) {
+			vga_scroll(vga_xscroll + 1, vga_yscroll);
+		}
+		break;
+
+	default:
+		break;
+	}
 }
 
 static void scrgame_mouse(int bn, int press, int x, int y)

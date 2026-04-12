@@ -1,12 +1,11 @@
 	section .text use32
 	bits 32
 
-VGA_PITCH	equ 80h
-
 SC_ADDR		equ 3c4h	; sequence controller address register
 CRTC_ADDR	equ 3d4h	; CRTC address register
 MISC_ADDR	equ 3c2h	; miscellaneous output register
-
+AC_PORT		equ 3c0h	; attribute controller reg/data port
+STAT1_PORT	equ 3dah
 
 %macro planemask 1
 	mov dx, SC_ADDR
@@ -86,6 +85,10 @@ vga_setmodex_:
 	xor eax, eax
 	rep stosd
 
+	; reset attribute controller flip-flop
+	mov dx, STAT1_PORT
+	in al, dx
+
 	; initial back buffer is the second page
 	mov dword [_vga_backbuf], 0a4b00h
 
@@ -93,7 +96,7 @@ vga_setmodex_:
 	; can just draw to a0000 as usual and it will be visible.
 	; This also makes sure the low byte is 0, because we're not touching it
 	; while page flipping; we flip by toggling a few bits in the high byte.
-	mov dx, 3dah
+	mov dx, STAT1_PORT
 .invb:	in al, dx
 	and al, 8
 	jnz .invb
@@ -112,6 +115,18 @@ vga_cleanup_:
 	mov ax, 3
 	int 10h
 	popa
+	ret
+
+	global vga_setpitch_
+vga_setpitch_:
+	push edx
+	mov [_vga_pitch], eax
+	shr eax, 1	; in byte addressing scanline offset is this value * 2
+	mov ah, al
+	mov al, 13h	; offset register [13h]
+	mov dx, CRTC_ADDR
+	out dx, ax
+	pop edx
 	ret
 
 	global vga_setpal_
@@ -210,7 +225,7 @@ vga_pgflip_:
 	; only proceed if we're out of vblank, otherwise we might think we've
 	; set a new scanout address, but it might not be latched until the next
 	; vblank, and we'll be drawing over the scanout buffer in the meantime.
-	mov dx, 3dah
+	mov dx, STAT1_PORT
 .wait:	in al, dx
 	and al, 8
 	jnz .wait
@@ -226,7 +241,7 @@ vga_pgflip_:
 	; then, if vsync was requested, wait until we enter vblank
 	test eax, eax
 	jz .end
-	mov dx, 3dah
+	mov dx, STAT1_PORT
 .waitvblank:
 	in al, dx
 	and al, 8
@@ -236,11 +251,59 @@ vga_pgflip_:
 	pop ebx
 	ret
 
+	; eax: xoffs
+	; edx: yoffs
+	global vga_scroll_:
+vga_scroll_:
+	push ebx
+	mov [_vga_xscroll], eax
+	mov [_vga_yscroll], edx
+	mov ebx, eax
+	shr ebx, 2
+	mov eax, edx
+	imul eax, [_vga_pitch]
+	add eax, ebx
+	mov ebx, eax
+
+	; make sure we're out of vblank (see above)
+	mov dx, STAT1_PORT
+.wait:	in al, dx
+	and al, 8
+	jnz .wait
+
+	mov dx, CRTC_ADDR
+	mov al, 0ch	; start addr high
+	out dx, ax
+	mov ah, bl
+	inc al		; start addr low
+	out dx, ax
+
+	; start address change only x-scrolls in 4 column increments, use the
+	; horizontal pixel pan register for the remainder
+	; flip-flop is in address mode, due to the vblank check above (in stat1)
+	mov dx, STAT1_PORT
+	in al, dx
+	mov dx, AC_PORT
+	mov al, 33h	; horizontal pixel pan register ORed with video palette access
+	out dx, al
+	mov eax, [_vga_xscroll]
+	and eax, 3
+	out dx, al
+
+	pop ebx
+	ret
+
 
 	section .bss
 
 	align 4
 	global _vga_backbuf
 _vga_backbuf dd 0
+	global _vga_pitch
+_vga_pitch dd 80
+	global _vga_xscroll
+_vga_xscroll dd 0
+	global _vga_yscroll
+_vga_yscroll dd 0
 
 ; vi:ft=nasm:
