@@ -253,7 +253,7 @@ vga_pgflip_:
 
 	; eax: xoffs
 	; edx: yoffs
-	global vga_scroll_:
+	global vga_scroll_
 vga_scroll_:
 	push ebx
 	mov [_vga_xscroll], eax
