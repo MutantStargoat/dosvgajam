@@ -14,7 +14,7 @@
 #define CELL_YSZ	(TILE_YSZ << 1)
 
 struct rect {
-	unsigned int x, y, w, h;
+	int x, y, w, h;
 };
 
 enum {
