@@ -90,19 +90,25 @@ vga_setmodex_:
 	in al, dx
 
 	; initial back buffer is the second page
-	mov dword [_vga_backbuf], 0a4b00h
+	; XXX game-specific tweak: assume 88 byte scanlines for the guard band
+	; and add a vertical guard band of 16 scanlines before each buffer
+	; a0580h/a6300h
+	mov dword [_vga_backbuf], 0a6380h
 
 	; set initial scanout address to page 0. if we never pageflip, we
 	; can just draw to a0000 as usual and it will be visible.
 	; This also makes sure the low byte is 0, because we're not touching it
 	; while page flipping; we flip by toggling a few bits in the high byte.
+	; XXX game-specific: start after the guard band
 	mov dx, STAT1_PORT
 .invb:	in al, dx
 	and al, 8
 	jnz .invb
 	mov dx, CRTC_ADDR
-	mov ax, 000ch	; 0ch: start address high register
-	mov ax, 000dh	; 0dh: start address low register
+	mov ah, [_vga_backbuf + 8]
+	mov al, 0ch	; 0ch: start address high register
+	mov ah, [_vga_backbuf]
+	mov al, 0dh	; 0dh: start address low register
 	out dx, ax
 
 	popa
@@ -213,6 +219,7 @@ vga_blitfb_:
 	; vga_backbuf is the linear address of the back buffer in video RAM
 	; either a0000 or a4b00. Only the high byte needs ot be changed to flip
 	; between them, and masking with ffff gives the CRTC start address.
+	; XXX game-specific: a0580h/a5d80h
 	global vga_pgflip_
 vga_pgflip_:
 	push ebx
@@ -234,7 +241,7 @@ vga_pgflip_:
 	mov ax, bx		; get previously prepared reg addr and value
 	out dx, ax
 	; clear low bits and flip the backbuffer pointer
-	xor ax, 4b0ch
+	xor ax, 660ch
 	mov [_vga_backbuf], ax
 
 	pop eax

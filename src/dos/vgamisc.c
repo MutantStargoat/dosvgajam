@@ -2,12 +2,12 @@
 
 void vga_vline(uint8_t *vmem, int x, int y, int len, uint8_t color)
 {
-	vmem += y * vga_pitch + (x >> 2);
+	vmem += y * VGA_PITCH + (x >> 2);
 	vga_planemask(1 << (x & 3));
 
 	while(len-- > 0) {
 		*vmem = color;
-		vmem += vga_pitch;
+		vmem += VGA_PITCH;
 	}
 }
 
@@ -15,7 +15,7 @@ void vga_hline(uint8_t *vmem, int x, int y, int len, uint8_t color)
 {
 	uint32_t c4, *ptr32;
 	unsigned int align;
-	vmem += y * vga_pitch + (x >> 2);
+	vmem += y * VGA_PITCH + (x >> 2);
 
 	align = x & 3;
 	if(align != 0) {
@@ -62,7 +62,7 @@ void vga_fillrect(uint8_t *vmem, int x, int y, int w, int h, uint8_t color)
 	uint32_t c4, *ptr32;
 	unsigned int align;
 	uint8_t *vptr;
-	vmem += y * vga_pitch + (x >> 2);
+	vmem += y * VGA_PITCH + (x >> 2);
 
 	align = x & 3;
 	if(align != 0) {
@@ -70,7 +70,7 @@ void vga_fillrect(uint8_t *vmem, int x, int y, int w, int h, uint8_t color)
 		vptr = vmem;
 		for(i=0; i<h; i++) {
 			*vptr = color;
-			vptr += vga_pitch;
+			vptr += VGA_PITCH;
 		}
 		vmem++;
 		w -= 4 - align;
@@ -86,7 +86,7 @@ void vga_fillrect(uint8_t *vmem, int x, int y, int w, int h, uint8_t color)
 			for(j=0; j<w/16; j++) {
 				ptr32[j] = c4;
 			}
-			ptr32 += vga_pitch / 4;
+			ptr32 += VGA_PITCH / 4;
 		}
 		vmem += w / 4;
 	}
@@ -95,7 +95,7 @@ void vga_fillrect(uint8_t *vmem, int x, int y, int w, int h, uint8_t color)
 		vptr = vmem;
 		for(i=0; i<h; i++) {
 			*vptr = color;
-			vptr += vga_pitch;
+			vptr += VGA_PITCH;
 		}
 		vmem++;
 		w -= 4;
@@ -105,7 +105,7 @@ void vga_fillrect(uint8_t *vmem, int x, int y, int w, int h, uint8_t color)
 		vga_planemask(0xf >> (4 - w));
 		for(i=0; i<h; i++) {
 			*vmem = color;
-			vmem += vga_pitch;
+			vmem += VGA_PITCH;
 		}
 	}
 }

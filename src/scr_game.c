@@ -14,21 +14,9 @@
 #define ROW_SIZE		(CELL_YSZ >> 1)
 
 static struct level lvl;
-
-/* fractional row/col scroll accumulators. advance when they go over |COL_SIZE|
- * or |ROW_SIZE| to paint more tiles outside the edges
- */
-static int scroll_dx, scroll_dy;
-
-static struct rect vport, vpcells;
-static struct rect *dirty;
-static int num_dirty, max_dirty;
+static int xscroll, yscroll;
 
 struct tileimg *seltile, *cursor;
-
-static void scroll(int dx, int dy);
-static void dirty_rect(int x, int y, int w, int h);
-static INLINE void clear_dirty(void);
 
 
 static int scrgame_init(void)
@@ -37,14 +25,12 @@ static int scrgame_init(void)
 		return -1;
 	}
 
+	xscroll = yscroll = 0;
+
 	/* define a cell selection tile */
 	seltile = tiles_define(&tileset, 64, 480, CELL_XSZ, CELL_YSZ);
 	/* define the mouse cursor sprite */
 	cursor = tiles_define(&tileset, 128, 480, 16, 24);
-
-	max_dirty = 16;
-	num_dirty = 0;
-	dirty = malloc_nf(16 * sizeof *dirty);
 
 	return 0;
 }
@@ -52,7 +38,6 @@ static int scrgame_init(void)
 static void scrgame_destroy(void)
 {
 	destroy_level(&lvl);
-	free(dirty);
 }
 
 static int scrgame_start(void)
@@ -65,33 +50,20 @@ static int scrgame_start(void)
 	}
 	vga_setpal(0xff, 0xff, 0xff, 0xff);
 
-	vga_setpitch((320 + CELL_XSZ) / 4);
-	vga_scroll(CELL_XSZ / 2, CELL_YSZ / 2);
-
-	scroll_dx = scroll_dy = 0;
-
-	vport.x = vport.y = 0;
-	vport.w = 320;
-	vport.h = 240;
-	dirty_rect(vport.x, vport.y, vport.w, vport.h);
-
-	vpcells.x = vpcells.y = 0;
-	vpcells.w = (320 + CELL_XSZ - 1) / CELL_XSZ;
-	vpcells.h = (240 + CELL_YSZ - 1) / CELL_YSZ;
+	vga_setpitch(VGA_PITCH);
 
 	return 0;
 }
 
 static void scrgame_stop(void)
 {
-	vga_setpitch(320 / 4);
+	vga_setpitch(80);
 }
 
 #define SCROLL_SPEED	1024
 static void update(void)
 {
 	static long prev_upd;
-	static int32_t scrx, scry;
 	long dt;
 
 	dt = time_msec - prev_upd;
@@ -100,83 +72,57 @@ static void update(void)
 	prev_upd = time_msec;
 
 	if(kb_isdown(KEY_UP)) {
-		scry -= SCROLL_SPEED * dt;
+		yscroll -= SCROLL_SPEED * dt;
 	}
 	if(kb_isdown(KEY_DOWN)) {
-		scry += SCROLL_SPEED * dt;
+		yscroll += SCROLL_SPEED * dt;
 	}
 	if(kb_isdown(KEY_LEFT)) {
-		scrx -= SCROLL_SPEED * dt;
+		xscroll -= SCROLL_SPEED * dt;
 	}
 	if(kb_isdown(KEY_RIGHT)) {
-		scrx += SCROLL_SPEED * dt;
-	}
-
-	if(abs(scrx) > 65535 || abs(scry) > 65535) {
-		int xoffs = scrx >> 16;
-		int yoffs = scry >> 16;
-		int sx = vga_xscroll + xoffs;
-		int sy = vga_yscroll + yoffs;
-
-		if(sx < 0) sx = 0;
-		if(sx >= XSCROLL_MAX) sx = XSCROLL_MAX - 1;
-		if(sy < 0) sy = 0;
-		if(sy >= YSCROLL_MAX) sy = YSCROLL_MAX - 1;
-		vga_scroll(sx, sy);
-
-		scrx = scry = 0;
+		xscroll += SCROLL_SPEED * dt;
 	}
 }
 
 static void scrgame_display(void)
 {
-	static int prev_mx, prev_my;
-	int i, cx, cx0, cy, cy0, sx, sy, x, row;
+	int cx, cx0, cy, cy0, sx, sy, x, row;
 	struct level_cell *cell;
 
 	update();
 
-	if(mouse_x != prev_mx || mouse_y != prev_my) {
-		dirty_rect(prev_mx, prev_my, cursor->width, cursor->height);
-		vga_fillrect(VGA_VMEM, prev_mx, prev_my, cursor->width, cursor->height, 0);
-	}
+	vscr_to_cell(xscroll, yscroll, &cx, &cy);
+	cell_to_vscr(cx, cy, &sx, &sy);		/* top corner of first cell */
+	sx -= CELL_XSZ / 2;					/* top-left bound */
 
-	/* invalidate cells in the dirty rects */
-	for(i=0; i<num_dirty; i++) {
-		vscr_to_cell(dirty[i].x, dirty[i].y, &cx, &cy);
-		cell_to_vscr(cx, cy, &sx, &sy);		/* top corner of first cell */
-		sx -= CELL_XSZ / 2;					/* top-left bound */
-
-		row = 0;
-		while(sy < dirty[i].y + dirty[i].h) {
-			x = (row & 1) ? sx - CELL_XSZ / 2 : sx;
-			cx0 = cx;
-			cy0 = cy;
-			while(x < dirty[i].x + dirty[i].w) {
-				if((cell = get_level_cell(&lvl, cx, cy))) {
-					draw_level_cell(&lvl, cell, 0, x, sy);
-				}
-
-				x += CELL_XSZ;
-
-				/* check if we reach the edge of the map diamond */
-				if(++cx >= lvl.size) break;
-				if(--cy < 0) break;
+	row = 0;
+	while(sy < yscroll + FB_HEIGHT) {
+		x = (row & 1) ? sx - CELL_XSZ / 2 : sx;
+		cx0 = cx;
+		cy0 = cy;
+		while(x < xscroll + FB_WIDTH) {
+			if((cell = get_level_cell(&lvl, cx, cy))) {
+				draw_level_cell(&lvl, cell, 0, x, sy);
 			}
 
-			sy += CELL_YSZ / 2;
+			x += CELL_XSZ;
 
-			if(row++ & 1) {
-				cx = cx0 + 1;
-				cy = cy0;
-			} else {
-				cx = cx0;
-				cy = cy0 + 1;
-			}
+			/* check if we reach the edge of the map diamond */
+			if(++cx >= lvl.size) break;
+			if(--cy < 0) break;
+		}
+
+		sy += CELL_YSZ / 2;
+
+		if(row++ & 1) {
+			cx = cx0 + 1;
+			cy = cy0;
+		} else {
+			cx = cx0;
+			cy = cy0 + 1;
 		}
 	}
-
-	clear_dirty();
 
 	/* mouseover highlight */
 	/*
@@ -191,13 +137,8 @@ static void scrgame_display(void)
 	*/
 
 	tiles_blit_key(cursor, mouse_x, mouse_y);
-	dirty_rect(mouse_x, mouse_y, cursor->width, cursor->height);
-	prev_mx = mouse_x;
-	prev_my = mouse_y;
 
-#ifdef VGA_LFB
 	vga_pgflip(1);
-#endif
 }
 
 static void scrgame_keyb(int key, int press)
@@ -227,50 +168,3 @@ struct app_screen scr_game = {
 	scrgame_keyb,
 	scrgame_mouse, scrgame_motion
 };
-
-
-static void scroll(int dx, int dy)
-{
-	int new_blocks;
-	/* TODO: dx */
-
-	/* NOTES:
-	 * - accumulate deltas
-	 * - act when delta > row size (CELL_YSZ/2)
-	 */
-
-	scroll_dx += dx;
-	scroll_dy += dy;
-
-	if(scroll_dy >= ROW_SIZE) {
-		new_blocks = scroll_dy / ROW_SIZE;
-		dirty_rect(vport.x, vport.y + vport.h, vport.w, new_blocks * ROW_SIZE);
-		scroll_dy = 0;
-	}
-
-	vport.x += dx;
-	vport.y += dy;
-
-	vga_scroll(dx, dy);
-}
-
-static void dirty_rect(int x, int y, int w, int h)
-{
-	struct rect *dptr;
-
-	if(num_dirty >= max_dirty) {
-		max_dirty <<= 1;
-		dirty = realloc_nf(dirty, max_dirty * sizeof *dirty);
-	}
-
-	dptr = dirty + num_dirty++;
-	dptr->x = x;
-	dptr->y = y;
-	dptr->w = w;
-	dptr->h = h;
-}
-
-static INLINE void clear_dirty(void)
-{
-	num_dirty = 0;
-}

@@ -8,13 +8,11 @@
 #include "dosutil.h"
 
 #define VGA_MODEX
-#define VGA_VMEM	((uint8_t*)0xa0000)
-/* TODO: change for horiz. scrolling */
-#define VGA_PITCH	80
+/* horizontal guard band: 32 pixels (a single tile) */
+#define VGA_PITCH	(80 + 32/4)
 
 #else
 
-#define VGA_VMEM	vga_backbuf
 #define VGA_LFB
 #define VGA_PITCH	320
 

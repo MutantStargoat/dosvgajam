@@ -116,13 +116,13 @@ void tiles_blit_key(struct tileimg *tile, int x, int y)
 	uint8_t *src, *dst, ckey = tile->sheet->ckey;
 	/* TODO RLE blit */
 
-	offs = y * vga_pitch + (x >> 2);
+	offs = y * VGA_PITCH + (x >> 2);
 	mask = 1 << (x & 3);
 
 	for(k=0; k<4; k++) {
 		vga_planemask(mask);
 		src = tile->planeptr[k];
-		dst = VGA_VMEM + offs;
+		dst = vga_backbuf + offs;
 		for(i=0; i<tile->height; i++) {
 			for(j=0; j<bpwidth; j++) {
 				uint8_t pixel = src[j];
@@ -130,7 +130,7 @@ void tiles_blit_key(struct tileimg *tile, int x, int y)
 					dst[j] = pixel;
 				}
 			}
-			dst += vga_pitch;
+			dst += VGA_PITCH;
 			src += srcpitch;
 		}
 
