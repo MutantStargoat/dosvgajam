@@ -42,6 +42,7 @@ void vga_scroll(int xoffs, int yoffs);
 void vga_vline(uint8_t *vmem, int x, int y, int len, uint8_t color);
 void vga_hline(uint8_t *vmem, int x, int y, int len, uint8_t color);
 void vga_rect_outline(uint8_t *vmem, int x, int y, int w, int h, uint8_t color);
+void vga_fillrect(uint8_t *vmem, int x, int y, int w, int h, uint8_t color);
 
 #ifdef MSDOS
 #define vga_planemask(mask)		vga_sc_write(VGA_SC_MAPMASK_REG, mask)

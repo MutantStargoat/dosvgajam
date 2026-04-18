@@ -24,6 +24,8 @@ static struct rect vport, vpcells;
 static struct rect *dirty;
 static int num_dirty, max_dirty;
 
+struct tileimg *seltile, *cursor;
+
 static void scroll(int dx, int dy);
 static void dirty_rect(int x, int y, int w, int h);
 static INLINE void clear_dirty(void);
@@ -34,6 +36,11 @@ static int scrgame_init(void)
 	if(load_level(&lvl, "data/dbglevel.tmj") == -1) {
 		return -1;
 	}
+
+	/* define a cell selection tile */
+	seltile = tiles_define(&tileset, 64, 480, CELL_XSZ, CELL_YSZ);
+	/* define the mouse cursor sprite */
+	cursor = tiles_define(&tileset, 128, 480, 16, 24);
 
 	max_dirty = 16;
 	num_dirty = 0;
@@ -123,10 +130,16 @@ static void update(void)
 
 static void scrgame_display(void)
 {
+	static int prev_mx, prev_my;
 	int i, cx, cx0, cy, cy0, sx, sy, x, row;
 	struct level_cell *cell;
 
 	update();
+
+	if(mouse_x != prev_mx || mouse_y != prev_my) {
+		dirty_rect(prev_mx, prev_my, cursor->width, cursor->height);
+		vga_fillrect(VGA_VMEM, prev_mx, prev_my, cursor->width, cursor->height, 0);
+	}
 
 	/* invalidate cells in the dirty rects */
 	for(i=0; i<num_dirty; i++) {
@@ -141,7 +154,7 @@ static void scrgame_display(void)
 			cy0 = cy;
 			while(x < dirty[i].x + dirty[i].w) {
 				if((cell = get_level_cell(&lvl, cx, cy))) {
-					draw_level_cell(&lvl, cell, 0);
+					draw_level_cell(&lvl, cell, 0, x, sy);
 				}
 
 				x += CELL_XSZ;
@@ -164,6 +177,23 @@ static void scrgame_display(void)
 	}
 
 	clear_dirty();
+
+	/* mouseover highlight */
+	/*
+	vscr_to_cell(mouse_x, mouse_y, &cx, &cy);
+	printf("mouse %d,%d -> cell %d,%d\n", mouse_x, mouse_y, cx, cy);
+	if(BOUNDCHK(cx, lvl.size) && BOUNDCHK(cy, lvl.size)) {
+		cell_to_vscr(cx, cy, &sx, &sy);
+		sx -= CELL_XSZ / 2;
+		tiles_blit_key(seltile, sx, sy);
+		dirty_rect(sx, sy, CELL_XSZ, CELL_YSZ);
+	}
+	*/
+
+	tiles_blit_key(cursor, mouse_x, mouse_y);
+	dirty_rect(mouse_x, mouse_y, cursor->width, cursor->height);
+	prev_mx = mouse_x;
+	prev_my = mouse_y;
 
 #ifdef VGA_LFB
 	vga_pgflip(1);

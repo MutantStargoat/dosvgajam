@@ -267,10 +267,11 @@ vga_scroll_:
 
 	; make sure we're out of vblank (see above)
 	mov dx, STAT1_PORT
-.wait:	in al, dx
+.invbl:	in al, dx
 	and al, 8
-	jnz .wait
+	jnz .invbl
 
+	; change start address, will be latched during the next vblank
 	mov dx, CRTC_ADDR
 	mov al, 0ch	; start addr high
 	out dx, ax
@@ -278,11 +279,16 @@ vga_scroll_:
 	inc al		; start addr low
 	out dx, ax
 
+	; wait for vblank before setting the pixel-pan register, because it
+	; acts immediately
+	mov dx, STAT1_PORT
+.novbl:	in al, dx
+	and al, 8
+	jz .novbl
+
 	; start address change only x-scrolls in 4 column increments, use the
 	; horizontal pixel pan register for the remainder
 	; flip-flop is in address mode, due to the vblank check above (in stat1)
-	mov dx, STAT1_PORT
-	in al, dx
 	mov dx, AC_PORT
 	mov al, 33h	; horizontal pixel pan register ORed with video palette access
 	out dx, al

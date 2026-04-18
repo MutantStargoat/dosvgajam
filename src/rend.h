@@ -4,6 +4,6 @@
 struct level;
 struct level_cell;
 
-void draw_level_cell(struct level *lvl, struct level_cell *cell, int layer);
+void draw_level_cell(struct level *lvl, struct level_cell *cell, int layer, int destx, int desty);
 
 #endif	/* REND_H_ */
