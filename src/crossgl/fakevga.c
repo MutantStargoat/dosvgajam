@@ -9,6 +9,7 @@
 #define ASPECT		((float)FB_WIDTH / (float)FB_HEIGHT)
 
 uint8_t *vga_backbuf;
+unsigned int vga_pitch;
 
 struct cmap_color fake_cmap[256] = {
 	{0, 0, 0}, {0, 0, 0xaa}, {0, 0xaa, 0}, {0, 0xaa, 0xaa},
@@ -45,12 +46,19 @@ static PROC wgl_swap_interval_ext;
 static int create_glfb(void);
 static void set_vsync(int vsync);
 
+#define XGUARD	32
+#define YGUARD	16
+
+#define SCANLEN		(FB_WIDTH + XGUARD)
+#define TOTAL_LINES	(FB_HEIGHT + 2 * YGUARD)
+#define GUARD_OFFS	(YGUARD * SCANLEN)
 
 int vga_setmodex(void)
 {
-	if(!(vga_backbuf = calloc(1, FB_WIDTH * FB_HEIGHT))) {
+	if(!(vga_backbuf = calloc(1, SCANLEN * TOTAL_LINES))) {
 		return -1;
 	}
+	vga_backbuf += GUARD_OFFS;
 
 	if(create_glfb() == -1) {
 		return -1;
@@ -68,7 +76,13 @@ int vga_setmodex(void)
 
 void vga_cleanup(void)
 {
-	free(vga_backbuf);
+	free(vga_backbuf - GUARD_OFFS);
+}
+
+void vga_setpitch(unsigned int pitch)
+{
+	/* ignore pitch */
+	vga_pitch = SCANLEN;
 }
 
 void vga_setpal(int16_t idx, uint8_t r, uint8_t g, uint8_t b)
@@ -89,27 +103,32 @@ void vga_setpal(int16_t idx, uint8_t r, uint8_t g, uint8_t b)
 
 void vga_clearfb(unsigned int color)
 {
-	memset(vga_backbuf, color, FB_WIDTH * FB_HEIGHT);
+	memset(vga_backbuf, color, SCANLEN * FB_HEIGHT);
 }
 
-void vga_blitfb(void *vmem, const void *img)
+void vga_blitfb(uint8_t *vmem, const uint8_t *img)
 {
-	memcpy(vmem, img, FB_WIDTH * FB_HEIGHT);
+	int i;
+	for(i=0; i<FB_HEIGHT; i++) {
+		memcpy(vmem, img, FB_WIDTH);
+		vmem += SCANLEN;
+		img += FB_WIDTH;
+	}
 }
 
 void vga_vline(uint8_t *vmem, int x, int y, int len, uint8_t color)
 {
-	vmem += y * VGA_PITCH + x;
+	vmem += y * SCANLEN + x;
 
 	while(len-- > 0) {
 		*vmem = color;
-		vmem += VGA_PITCH;
+		vmem += SCANLEN;
 	}
 }
 
 void vga_hline(uint8_t *vmem, int x, int y, int len, uint8_t color)
 {
-	vmem += y * VGA_PITCH + x;
+	vmem += y * SCANLEN + x;
 
 	while(len-- > 0) {
 		*vmem++ = color;
@@ -172,13 +191,13 @@ void vga_pgflip(int wait_vblank)
 		prev_vsync = wait_vblank;
 	}
 
-	sptr = vga_backbuf + (FB_HEIGHT - 1) * FB_WIDTH;
+	sptr = vga_backbuf + (FB_HEIGHT - 1) * SCANLEN;
 	for(i=0; i<FB_HEIGHT; i++) {
 		for(j=0; j<FB_WIDTH; j++) {
 			struct cmap_color *col = fake_cmap + sptr[j];
 			*dptr++ = PACK_RGB32(col->r, col->g, col->b);
 		}
-		sptr -= FB_WIDTH;
+		sptr -= SCANLEN;
 	}
 
 #ifdef NO_GLTEX

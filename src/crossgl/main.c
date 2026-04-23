@@ -57,6 +57,7 @@ int main(int argc, char **argv)
 	glutSpecialUpFunc(skeyup);
 	glutMouseFunc(mouse_button);
 	glutMotionFunc(mouse_motion);
+	glutPassiveMotionFunc(mouse_motion);
 
 	/*glutSetCursor(GLUT_CURSOR_NONE);*/
 
@@ -93,7 +94,7 @@ void wait_vsync(void)
 {
 }
 
-int kb_isdown(int key)
+int app_keydown(int key)
 {
 	switch(key) {
 	case KEY_ANY:

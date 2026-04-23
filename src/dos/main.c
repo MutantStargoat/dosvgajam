@@ -66,6 +66,11 @@ void app_abort(void)
 	abort();
 }
 
+int app_keydown(int key)
+{
+	return kb_isdown(key);
+}
+
 static void upd_mouse(void)
 {
 	static int dx, dy, prev_mx, prev_my, mx = 160, my = 120;

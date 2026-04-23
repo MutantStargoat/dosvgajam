@@ -14,7 +14,7 @@
 #else
 
 #define VGA_LFB
-#define VGA_PITCH	320
+#define VGA_PITCH	(320 + 32)
 
 #endif
 
@@ -31,7 +31,7 @@ void vga_setpitch(unsigned int pitch);
 void vga_setpal(int16_t idx, uint8_t r, uint8_t g, uint8_t b);
 
 void vga_clearfb(unsigned int color);
-void vga_blitfb(void *vmem, const void *img);
+void vga_blitfb(uint8_t *vmem, const uint8_t *img);
 
 void vga_pgflip(int wait_vblank);
 void vga_scroll(int xoffs, int yoffs);

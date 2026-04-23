@@ -46,6 +46,7 @@ struct level {
 };
 
 extern struct tileset tileset;
+extern int adjlut[CELL_XSZ * CELL_YSZ * 2];
 
 int create_level(struct level *lvl, int sz, int nlayers);
 void destroy_level(struct level *lvl);
@@ -59,34 +60,35 @@ struct level_cell *get_level_cell_vscr(struct level *lvl, int sx, int sy);
 
 struct tileimg *get_cell_tile(struct level *lvl, struct level_cell *cell, int n, int layer);
 
-
-/* conversion between virtual screen and grid coordinates (24.8 fixed point) */
-static INLINE void vscr_to_grid(int sx, int sy, int32_t *gridx, int32_t *gridy)
-{
-	sx <<= 3;
-	sy <<= 4;
-	*gridx = (sy + sx) >> 1;
-	*gridy = (sy - sx) >> 1;
-}
-
-static INLINE void grid_to_vscr(int32_t gridx, int32_t gridy, int *sx, int *sy)
-{
-	*sx = (gridx - gridy) >> 3;
-	*sy = (gridx + gridy) >> 4;
-}
-
 /* conversion between virtual screen and cell indices */
-static INLINE void vscr_to_cell(int sx, int sy, int *cx, int *cy)
+static INLINE void vscr_to_cell(int sx, int sy, int *col, int *row)
 {
-	int32_t gx, gy;
-	vscr_to_grid(sx, sy, &gx, &gy);
-	*cx = gx >> 8;
-	*cy = gy >> 8;
+	int cx, cy, rx, ry, *adjoffs;
+
+	sx += CELL_XSZ / 2;
+	sy += CELL_YSZ / 2;
+
+	cx = sx / CELL_XSZ;
+	cy = sy / CELL_YSZ;
+	rx = sx % CELL_XSZ;
+	ry = sy % CELL_YSZ;
+
+	adjoffs = adjlut + (ry * (CELL_XSZ * 2) + rx * 2);
+	cx += adjoffs[0];
+	cy = cy * 2 + adjoffs[1];
+
+	*col = cx;
+	*row = cy;
 }
 
 static INLINE void cell_to_vscr(int cx, int cy, int *sx, int *sy)
 {
-	grid_to_vscr(cx << 8, cy << 8, sx, sy);
+	if(cy & 1) {
+		*sx = cx * CELL_XSZ + CELL_XSZ / 2;
+	} else {
+		*sx = cx * CELL_XSZ;
+	}
+	*sy = cy * CELL_YSZ / 2;
 }
 
 #endif	/* LEVEL_H_ */

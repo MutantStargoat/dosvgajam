@@ -6,10 +6,10 @@
 void draw_level_cell(struct level *lvl, struct level_cell *cell, int layer, int destx, int desty)
 {
 	static const int offs[][2] = {
-		{-TILE_XSZ/2, 0},
-		{-TILE_XSZ, TILE_YSZ/2},
-		{0, TILE_YSZ/2},
-		{-TILE_XSZ/2, TILE_YSZ}
+		{-TILE_XSZ / 2, -TILE_YSZ},
+		{-TILE_XSZ, -TILE_YSZ / 2},
+		{0, -TILE_YSZ / 2},
+		{-TILE_XSZ / 2, 0}
 	};
 	int i, x, y;
 	struct tileimg *tile;
@@ -18,9 +18,7 @@ void draw_level_cell(struct level *lvl, struct level_cell *cell, int layer, int 
 		if((tile = get_cell_tile(lvl, cell, i, layer))) {
 			x = destx + offs[i][0];
 			y = desty + offs[i][1];
-			if(x >= 0 && y >= 0) {
-				tiles_blit_key(tile, x, y);
-			}
+			tiles_blit_key(tile, x, y);
 		}
 	}
 }

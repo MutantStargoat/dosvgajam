@@ -76,5 +76,7 @@ void app_chscr(struct app_screen *scr);
 void app_quit(void);
 void app_abort(void);
 
+int app_keydown(int key);
+
 
 #endif	/* APP_H_ */

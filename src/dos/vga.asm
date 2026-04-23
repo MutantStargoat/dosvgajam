@@ -1,6 +1,8 @@
 	section .text use32
 	bits 32
 
+PITCH		equ (320 + 32) / 4
+
 SC_ADDR		equ 3c4h	; sequence controller address register
 CRTC_ADDR	equ 3d4h	; CRTC address register
 MISC_ADDR	equ 3c2h	; miscellaneous output register
@@ -169,7 +171,7 @@ vga_clearfb_:
 	planemask 0fh
 	mov eax, ecx
 	mov edi, [_vga_backbuf]
-	mov ecx, 4800	; 4800 dwords * 4 planes * 4 bytes = 76800 pixels
+	mov ecx, PITCH * 240 / 4
 	rep stosd
 	pop edi
 	pop edx
@@ -241,8 +243,7 @@ vga_pgflip_:
 	mov ax, bx		; get previously prepared reg addr and value
 	out dx, ax
 	; clear low bits and flip the backbuffer pointer
-	xor ax, 660ch
-	mov [_vga_backbuf], ax
+	xor word [_vga_backbuf], 6600h
 
 	pop eax
 	; then, if vsync was requested, wait until we enter vblank

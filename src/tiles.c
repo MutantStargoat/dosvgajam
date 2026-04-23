@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "tiles.h"
+#include "app.h"
 #include "image.h"
 #include "util.h"
 #include "dynarr.h"
@@ -89,6 +90,11 @@ void tiles_blit_key(struct tileimg *tile, int x, int y)
 {
 	int i, j;
 	uint8_t *src, *dst, ckey = tile->sheet->ckey;
+
+	if(x < -32) return;
+	if(x >= FB_WIDTH) return;
+	if(y < -16) return;
+	if(y >= FB_HEIGHT) return;
 
 	src = tile->imgptr;
 	dst = vga_backbuf + y * VGA_PITCH + x;
