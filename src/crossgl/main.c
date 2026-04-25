@@ -59,7 +59,7 @@ int main(int argc, char **argv)
 	glutMotionFunc(mouse_motion);
 	glutPassiveMotionFunc(mouse_motion);
 
-	/*glutSetCursor(GLUT_CURSOR_NONE);*/
+	glutSetCursor(GLUT_CURSOR_NONE);
 
 	glDisable(GL_DITHER);
 #ifndef NO_GLTEX

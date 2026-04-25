@@ -22,6 +22,7 @@ struct tileset {
 struct tileimg {
 	struct tileset *sheet;
 	int x, y, width, height;
+	int xorg, yorg;
 	uint8_t *imgptr;
 	uint8_t *planeptr[4];
 	unsigned char *rle;

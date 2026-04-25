@@ -66,7 +66,7 @@ void tiles_destroy(struct tileset *ts)
 
 struct tileimg *tiles_define(struct tileset *ts, int x, int y, int w, int h)
 {
-	struct tileimg *tile = malloc_nf(sizeof *tile);
+	struct tileimg *tile = calloc_nf(1, sizeof *tile);
 
 	dynarr_push_nf(ts->tiles, &tile);
 
@@ -91,6 +91,9 @@ void tiles_blit_key(struct tileimg *tile, int x, int y)
 {
 	int i, j;
 	uint8_t *src, *dst, ckey = tile->sheet->ckey;
+
+	x -= tile->xorg;
+	y -= tile->yorg;
 
 	if(x < -32) return;
 	if(x >= FB_WIDTH) return;
@@ -122,6 +125,9 @@ void tiles_blit_key(struct tileimg *tile, int x, int y)
 	unsigned int srcpitch = tile->sheet->pscansz;
 	uint8_t *src, *dst, ckey = tile->sheet->ckey;
 	/* TODO RLE blit */
+
+	x -= tile->xorg;
+	y -= tile->yorg;
 
 	if(x < -32) return;
 	if(x >= FB_WIDTH) return;

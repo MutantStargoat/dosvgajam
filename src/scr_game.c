@@ -17,7 +17,8 @@ static int prev_mx, prev_my;
 static struct level lvl;
 static int xscroll, yscroll;
 
-struct tileimg *seltile, *cursor, *reticle;
+struct tileimg *seltile, *cursors[2];
+static int mouse_mode;
 
 
 static int scrgame_init(void)
@@ -31,9 +32,10 @@ static int scrgame_init(void)
 	/* define a cell selection tile */
 	seltile = tiles_define(&tileset, 64, 480, CELL_XSZ, CELL_YSZ);
 	/* define the mouse cursor sprite */
-	cursor = tiles_define(&tileset, 128, 480, 10, 16);
+	cursors[0] = tiles_define(&tileset, 128, 480, 10, 16);
 	/* another mouse cursor sprite */
-	reticle = tiles_define(&tileset, 128, 496, 16, 16);
+	cursors[1] = tiles_define(&tileset, 128, 496, 16, 16);
+	cursors[1]->xorg = cursors[1]->yorg = 7;
 
 	return 0;
 }
@@ -55,6 +57,7 @@ static int scrgame_start(void)
 
 	vga_setpitch(VGA_PITCH);
 
+	mouse_mode = 0;
 	return 0;
 }
 
@@ -132,7 +135,7 @@ static void scrgame_display(void)
 		tiles_blit_key(seltile, x - CELL_XSZ / 2, y - CELL_YSZ / 2);
 	}
 
-	tiles_blit_key(reticle, mouse_x - 7, mouse_y - 7);
+	tiles_blit_key(cursors[mouse_mode], mouse_x, mouse_y);
 
 	vga_pgflip(1);
 }
@@ -142,6 +145,10 @@ static void scrgame_keyb(int key, int press)
 	if(!press) return;
 
 	switch(key) {
+	case '\t':
+		mouse_mode ^= 1;
+		break;
+
 	default:
 		break;
 	}
