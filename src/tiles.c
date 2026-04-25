@@ -10,6 +10,33 @@
 #include "level.h"
 
 
+#define RLE_OP_SKIP			0
+#define RLE_OP_COPY			0x80
+#define RLE_OP_BITS			0x80
+#define RLE_COUNT_BITS		0x7f
+
+#define ADD_RLE_SKIP(skip) \
+	do { \
+		void *tmp; \
+		uint8_t foo = RLE_OP_SKIP | ((skip) & RLE_COUNT_BITS); \
+		dynarr_push_nf(rledata, &foo); \
+		num_rle_ops++; \
+	} while(0)
+
+#define ADD_RLE_SPAN(count, ptr) \
+	do { \
+		int i; \
+		void *tmp; \
+		uint8_t *p = ptr; \
+		uint8_t foo = RLE_OP_COPY | ((count) & RLE_COUNT_BITS); \
+		dynarr_push_nf(rledata, &foo); \
+		for(i=0; i<count; i++) { \
+			dynarr_push_nf(rledata, p++); \
+		} \
+		num_rle_ops++; \
+	} while(0)
+
+
 int tiles_load(struct tileset *ts, const char *fname)
 {
 	struct image *img;
