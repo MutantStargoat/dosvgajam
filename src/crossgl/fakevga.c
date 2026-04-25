@@ -56,9 +56,6 @@ static void set_vsync(int vsync);
 
 int vga_setmodex(void)
 {
-	printf("fb offset: %x\n", GUARD_OFFS);
-	printf("total_lines: %d\n", TOTAL_LINES);
-
 	if(!(vga_backbuf = calloc(1, SCANLEN * TOTAL_LINES))) {
 		return -1;
 	}

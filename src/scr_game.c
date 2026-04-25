@@ -106,12 +106,15 @@ static void scrgame_display(void)
 	for(i=0; i<lvl.size; i++) {
 		for(j=0; j<lvl.size; j++) {
 			cell_to_vscr(j, i, &x, &y);
+
 			x -= xscroll;
 			y -= yscroll;
+
 			if(x >= -CELL_XSZ && x < FB_WIDTH + TILE_XSZ && y >= -CELL_YSZ &&
 					y < FB_HEIGHT + TILE_YSZ) {
 				draw_level_cell(&lvl, cell, 0, x, y);
 			}
+
 			cell++;
 		}
 	}
