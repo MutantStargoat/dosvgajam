@@ -7,6 +7,7 @@
 #include "util.h"
 #include "dynarr.h"
 #include "vga.h"
+#include "level.h"
 
 
 int tiles_load(struct tileset *ts, const char *fname)
@@ -121,6 +122,11 @@ void tiles_blit_key(struct tileimg *tile, int x, int y)
 	unsigned int srcpitch = tile->sheet->pscansz;
 	uint8_t *src, *dst, ckey = tile->sheet->ckey;
 	/* TODO RLE blit */
+
+	if(x < -32) return;
+	if(x >= FB_WIDTH) return;
+	if(y < -16) return;
+	if(y >= FB_HEIGHT) return;
 
 	offs = y * VGA_PITCH + (x >> 2);
 	mask = 1 << (x & 3);

@@ -94,8 +94,8 @@ vga_setmodex_:
 	; initial back buffer is the second page
 	; XXX game-specific tweak: assume 88 byte scanlines for the guard band
 	; and add a vertical guard band of 16 scanlines before each buffer
-	; a0580h/a6300h
-	mov dword [_vga_backbuf], 0a6380h
+	; a0588h/a5d88h
+	mov dword [_vga_backbuf], 0a5d80h
 
 	; set initial scanout address to page 0. if we never pageflip, we
 	; can just draw to a0000 as usual and it will be visible.
@@ -243,7 +243,7 @@ vga_pgflip_:
 	mov ax, bx		; get previously prepared reg addr and value
 	out dx, ax
 	; clear low bits and flip the backbuffer pointer
-	xor word [_vga_backbuf], 6600h
+	xor word [_vga_backbuf], 5800h
 
 	pop eax
 	; then, if vsync was requested, wait until we enter vblank

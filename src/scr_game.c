@@ -17,28 +17,6 @@ static int xscroll, yscroll;
 
 struct tileimg *seltile, *cursor;
 
-static void test(void)
-{
-	int pos[][2] = {{0, 0}, {32, 16}, {64, 64}, {90, 44}, {-22, -12}, {24, -8}};
-	int exp1[][2] = {{0, 0}, {0, 1}, {1, 4}, {1, 3}, {-1, -1}, {0, -1}};
-	int cell[][2] = {{0, 0}, {1, 0}, {1, 1}, {0, 1}, {2, 3}};
-	int exp2[][2] = {{0, 0}, {64, 0}, {96, 16}, {32, 16}, {160, 48}};
-	int i, x, y, row, col;
-
-	printf("TEST vscr_to_cell\n");
-	for(i=0; i<sizeof pos / sizeof *pos; i++) {
-		vscr_to_cell(pos[i][0], pos[i][1], &col, &row);
-		printf("%3d,%3d -> %3d,%3d  (%d,%d expected)\n", pos[i][0], pos[i][1],
-				col, row, exp1[i][0], exp1[i][1]);
-	}
-
-	printf("TEST cell_to_vscr\n");
-	for(i=0; i<sizeof cell / sizeof *cell; i++) {
-		cell_to_vscr(cell[i][0], cell[i][1], &x, &y);
-		printf("%3d,%3d -> %3d,%3d  (%d,%d expected)\n", cell[i][0], cell[i][1],
-				x, y, exp2[i][0], exp2[i][1]);
-	}
-}
 
 static int scrgame_init(void)
 {
@@ -53,7 +31,6 @@ static int scrgame_init(void)
 	/* define the mouse cursor sprite */
 	cursor = tiles_define(&tileset, 128, 480, 10, 16);
 
-	test();
 	return 0;
 }
 
@@ -82,7 +59,7 @@ static void scrgame_stop(void)
 	vga_setpitch(80);
 }
 
-#define SCROLL_SPEED	1024
+#define SCROLL_SPEED	2048
 static void update(void)
 {
 	static long prev_upd;
@@ -113,46 +90,38 @@ static void update(void)
 	yacc -= yacc & (int)0xffff0000;
 }
 
-#define XCELLS		((320 + TILE_XSZ + CELL_XSZ - 1) / CELL_XSZ - 1)
-#define YCELLS		(2 * (240 + TILE_YSZ + CELL_YSZ - 1) / CELL_YSZ - 1)
+#define XCELLS		((320 + TILE_XSZ + CELL_XSZ - 1) / CELL_XSZ)
+#define YCELLS		(2 * (240 + TILE_YSZ + CELL_YSZ - 1) / CELL_YSZ)
 
 static void scrgame_display(void)
 {
-	int i, j, x, y, cx0, cy0, cx, cy, xoffs, yoffs;
+	int i, j, x, y, mouse_cx, mouse_cy;
 	struct level_cell *cell;
 
 	update();
 
 	vga_clearfb(0);
 
-	/* find cell at the top-left corner of the screen */
-	vscr_to_cell(-xscroll, -yscroll, &cx0, &cy0);
-
-	xoffs = xscroll & (CELL_XSZ - 1);
-	yoffs = yscroll & (CELL_YSZ - 1);
-
-	cy = cy0;
-	y = yoffs;
-	for(i=0; i<YCELLS; i++) {
-		cx = cx0;
-		x = cy & 1 ? xoffs + CELL_XSZ / 2 : xoffs;
-		for(j=0; j<XCELLS; j++) {
-			if((cell = get_level_cell(&lvl, cx0 + j, cy0 + i))) {
+	cell = lvl.cells;
+	for(i=0; i<lvl.size; i++) {
+		for(j=0; j<lvl.size; j++) {
+			cell_to_vscr(j, i, &x, &y);
+			x -= xscroll;
+			y -= yscroll;
+			if(x >= -CELL_XSZ && x < FB_WIDTH + TILE_XSZ && y >= -CELL_YSZ &&
+					y < FB_HEIGHT + TILE_YSZ) {
 				draw_level_cell(&lvl, cell, 0, x, y);
 			}
-			x += CELL_XSZ;
-			cx++;
+			cell++;
 		}
-		y += CELL_YSZ / 2;
-		cy++;
 	}
 
 	/* mouseover highlight */
-	vscr_to_cell(mouse_x - xscroll, mouse_y - yscroll, &cx, &cy);
-	if(BOUNDCHK(cx, lvl.size) && BOUNDCHK(cy, lvl.size)) {
-		cell_to_vscr(cx, cy, &x, &y);
-		x += xscroll;
-		y += yscroll;
+	vscr_to_cell(mouse_x + xscroll, mouse_y + yscroll, &mouse_cx, &mouse_cy);
+	if(BOUNDCHK(mouse_cx, lvl.size) && BOUNDCHK(mouse_cy, lvl.size)) {
+		cell_to_vscr(mouse_cx, mouse_cy, &x, &y);
+		x -= xscroll;
+		y -= yscroll;
 		tiles_blit_key(seltile, x - CELL_XSZ / 2, y - CELL_YSZ / 2);
 	}
 

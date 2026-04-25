@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -51,10 +52,13 @@ static void set_vsync(int vsync);
 
 #define SCANLEN		(FB_WIDTH + XGUARD)
 #define TOTAL_LINES	(FB_HEIGHT + 2 * YGUARD)
-#define GUARD_OFFS	(YGUARD * SCANLEN)
+#define GUARD_OFFS	(YGUARD * SCANLEN + XGUARD)
 
 int vga_setmodex(void)
 {
+	printf("fb offset: %x\n", GUARD_OFFS);
+	printf("total_lines: %d\n", TOTAL_LINES);
+
 	if(!(vga_backbuf = calloc(1, SCANLEN * TOTAL_LINES))) {
 		return -1;
 	}
