@@ -12,10 +12,12 @@
 #define COL_SIZE		(CELL_XSZ >> 1)
 #define ROW_SIZE		(CELL_YSZ >> 1)
 
+static int prev_mx, prev_my;
+
 static struct level lvl;
 static int xscroll, yscroll;
 
-struct tileimg *seltile, *cursor;
+struct tileimg *seltile, *cursor, *reticle;
 
 
 static int scrgame_init(void)
@@ -30,6 +32,8 @@ static int scrgame_init(void)
 	seltile = tiles_define(&tileset, 64, 480, CELL_XSZ, CELL_YSZ);
 	/* define the mouse cursor sprite */
 	cursor = tiles_define(&tileset, 128, 480, 10, 16);
+	/* another mouse cursor sprite */
+	reticle = tiles_define(&tileset, 128, 496, 16, 16);
 
 	return 0;
 }
@@ -128,7 +132,7 @@ static void scrgame_display(void)
 		tiles_blit_key(seltile, x - CELL_XSZ / 2, y - CELL_YSZ / 2);
 	}
 
-	tiles_blit_key(cursor, mouse_x, mouse_y);
+	tiles_blit_key(reticle, mouse_x - 7, mouse_y - 7);
 
 	vga_pgflip(1);
 }
@@ -147,6 +151,9 @@ static void scrgame_mouse(int bn, int press, int x, int y)
 {
 	int cx, cy;
 
+	prev_mx = x;
+	prev_my = y;
+
 	if(!press) return;
 
 	if(bn == 0) {
@@ -158,6 +165,17 @@ static void scrgame_mouse(int bn, int press, int x, int y)
 
 static void scrgame_motion(int x, int y)
 {
+	int dx, dy;
+
+	dx = mouse_x - prev_mx;
+	dy = mouse_y - prev_my;
+	prev_mx = mouse_x;
+	prev_my = mouse_y;
+
+	if(mouse_bnstate & 4) {
+		xscroll -= dx;
+		yscroll -= dy;
+	}
 }
 
 
