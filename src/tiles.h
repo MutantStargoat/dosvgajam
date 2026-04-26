@@ -25,7 +25,7 @@ struct tileimg {
 	int xorg, yorg;
 	uint8_t *imgptr;
 	uint8_t *planeptr[4];
-	unsigned char *rle;
+	unsigned char *rle, *prle[4];
 };
 
 int tiles_load(struct tileset *ts, const char *fname);
@@ -34,5 +34,6 @@ void tiles_destroy(struct tileset *ts);
 struct tileimg *tiles_define(struct tileset *ts, int x, int y, int w, int h);
 
 void tiles_blit_key(struct tileimg *tile, int x, int y);
+void tiles_blit_rle(struct tileimg *tile, int x, int y);
 
 #endif	/* TILESHEET_H_ */

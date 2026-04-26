@@ -132,10 +132,10 @@ static void scrgame_display(void)
 		cell_to_vscr(mouse_cx, mouse_cy, &x, &y);
 		x -= xscroll;
 		y -= yscroll;
-		tiles_blit_key(seltile, x - CELL_XSZ / 2, y - CELL_YSZ / 2);
+		tiles_blit_rle(seltile, x - CELL_XSZ / 2, y - CELL_YSZ / 2);
 	}
 
-	tiles_blit_key(cursors[mouse_mode], mouse_x, mouse_y);
+	tiles_blit_rle(cursors[mouse_mode], mouse_x, mouse_y);
 
 	vga_pgflip(1);
 }

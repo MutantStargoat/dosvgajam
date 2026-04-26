@@ -15,27 +15,7 @@
 #define RLE_OP_BITS			0x80
 #define RLE_COUNT_BITS		0x7f
 
-#define ADD_RLE_SKIP(skip) \
-	do { \
-		void *tmp; \
-		uint8_t foo = RLE_OP_SKIP | ((skip) & RLE_COUNT_BITS); \
-		dynarr_push_nf(rledata, &foo); \
-		num_rle_ops++; \
-	} while(0)
-
-#define ADD_RLE_SPAN(count, ptr) \
-	do { \
-		int i; \
-		void *tmp; \
-		uint8_t *p = ptr; \
-		uint8_t foo = RLE_OP_COPY | ((count) & RLE_COUNT_BITS); \
-		dynarr_push_nf(rledata, &foo); \
-		for(i=0; i<count; i++) { \
-			dynarr_push_nf(rledata, p++); \
-		} \
-		num_rle_ops++; \
-	} while(0)
-
+static void conv_rle(struct tileimg *tile, int bpl);
 
 int tiles_load(struct tileset *ts, const char *fname)
 {
@@ -85,6 +65,7 @@ void tiles_destroy(struct tileset *ts)
 	free(ts->pixels);
 
 	for(i=0; i<dynarr_size(ts->tiles); i++) {
+		dynarr_free(ts->tiles[i]->rle);
 		free(ts->tiles[i]);
 	}
 	dynarr_free(ts->tiles);
@@ -103,12 +84,20 @@ struct tileimg *tiles_define(struct tileset *ts, int x, int y, int w, int h)
 	tile->width = w;
 	tile->height = h;
 	tile->imgptr = ts->pixels + y * ts->pitch + x;
-	tile->rle = 0;	/* TODO */
 
 	tile->planeptr[0] = ts->plane[0] + y * ts->pscansz + (x >> 2);
 	tile->planeptr[1] = tile->planeptr[0] + ts->psize;
 	tile->planeptr[2] = tile->planeptr[1] + ts->psize;
 	tile->planeptr[3] = tile->planeptr[2] + ts->psize;
+
+#ifdef VGA_LFB
+	conv_rle(tile, -1);
+#else
+	conv_rle(tile, 0);
+	conv_rle(tile, 1);
+	conv_rle(tile, 2);
+	conv_rle(tile, 3);
+#endif
 
 	return tile;
 }
@@ -139,6 +128,46 @@ void tiles_blit_key(struct tileimg *tile, int x, int y)
 		}
 		dst += VGA_PITCH;
 		src += tile->sheet->pitch;
+	}
+}
+
+void tiles_blit_rle(struct tileimg *tile, int x, int y)
+{
+	unsigned int rle, op, count;
+	uint8_t *rleptr, *end, *dst, *dstrow;
+
+	x -= tile->xorg;
+	y -= tile->yorg;
+
+	if(x < -32) return;
+	if(x >= FB_WIDTH) return;
+	if(y < -16) return;
+	if(y >= FB_HEIGHT) return;
+
+	rleptr = tile->rle;
+	end = rleptr + dynarr_size(tile->rle);
+
+	dst = dstrow = vga_backbuf + y * VGA_PITCH + x;
+
+	while(rleptr < end) {
+		rle = (unsigned int)*rleptr++;
+		op = rle & RLE_OP_BITS;
+		count = rle & RLE_COUNT_BITS;
+
+		if(op & RLE_OP_COPY) {
+			memcpy(dst, rleptr, count);
+			dst += count;
+			rleptr += count;
+		} else {
+			/* skip */
+			if(count) {
+				dst += count;
+			} else {
+				/* skip 0 means next scanline */
+				dstrow += VGA_PITCH;
+				dst = dstrow;
+			}
+		}
 	}
 }
 
@@ -186,4 +215,139 @@ void tiles_blit_key(struct tileimg *tile, int x, int y)
 		}
 	}
 }
+void tiles_blit_rle(struct tileimg *tile, int x, int y)
+{
+	int k, offs;
+	unsigned int rle, op, count, mask;
+	uint8_t *rleptr, *end, *dst, *dstrow;
+
+	x -= tile->xorg;
+	y -= tile->yorg;
+
+	if(x < -32) return;
+	if(x >= FB_WIDTH) return;
+	if(y < -16) return;
+	if(y >= FB_HEIGHT) return;
+
+	offs = y * VGA_PITCH + (x >> 2);
+	mask = 1 << (x & 3);
+
+	for(k=0; k<4; k++) {
+		rleptr = tile->prle[k];
+		end = rleptr + dynarr_size(rleptr);
+
+		vga_planemask(mask);
+		dst = dstrow = vga_backbuf + offs;
+
+		while(rleptr < end) {
+			rle = (unsigned int)*rleptr++;
+			op = rle & RLE_OP_BITS;
+			count = rle & RLE_COUNT_BITS;
+
+			if(op & RLE_OP_COPY) {
+				memcpy(dst, rleptr, count);
+				dst += count;
+				rleptr += count;
+			} else {
+				/* skip */
+				if(count) {
+					dst += count;
+				} else {
+					/* skip 0 means next scanline */
+					dstrow += VGA_PITCH;
+					dst = dstrow;
+				}
+			}
+		}
+
+		mask = (mask << 1) & 0xf;
+		if(!mask) {
+			mask = 1;
+			offs++;
+		}
+	}
+}
 #endif
+
+
+#define ADD_RLE_SKIP(skip) \
+	do { \
+		uint8_t foo = RLE_OP_SKIP | ((skip) & RLE_COUNT_BITS); \
+		dynarr_push_nf(rlebuf, &foo); \
+	} while(0)
+
+#define ADD_RLE_SPAN(count, ptr) \
+	do { \
+		int i; \
+		uint8_t *p = ptr; \
+		uint8_t foo = RLE_OP_COPY | ((count) & RLE_COUNT_BITS); \
+		dynarr_push_nf(rlebuf, &foo); \
+		for(i=0; i<count; i++) { \
+			dynarr_push_nf(rlebuf, p++); \
+		} \
+	} while(0)
+
+static void conv_rle(struct tileimg *tile, int bpl)
+{
+	int i, j, scanlen, count, skip;
+	unsigned int pitch;
+	uint8_t *rlebuf, *srcrow, *sptr, ckey;
+
+	rlebuf = dynarr_alloc_nf(0, 1);
+
+	ckey = tile->sheet->ckey;
+
+	if(bpl < 0) {
+		pitch = tile->sheet->pitch;
+		srcrow = tile->imgptr;
+		scanlen = tile->width;
+	} else {
+		pitch = tile->sheet->pscansz;
+		srcrow = tile->planeptr[bpl];
+		scanlen = tile->width / 4;
+	}
+
+	for(i=0; i<tile->height; i++) {
+		count = skip = 0;
+		sptr = srcrow;
+		for(j=0; j<scanlen; j++) {
+			if(*sptr == ckey) {
+				/* transparent pixel */
+				if(count) {
+					/* we had non-transparent up to now, add a span */
+					ADD_RLE_SPAN(count, sptr - count);
+					count = 0;
+				} else {
+					/* previous was transparent, increment skip */
+					skip++;
+				}
+			} else {
+				/* non-transparent pixel */
+				if(skip) {
+					/* we had transparent up to now, add a skip */
+					ADD_RLE_SKIP(skip);
+					skip = 0;
+				}
+
+				count++;
+			}
+			sptr++;
+		}
+
+		/* end of scanline, add any residuals */
+		if(count) {
+			ADD_RLE_SPAN(count, sptr - count);
+			count = 0;
+		}
+		ADD_RLE_SKIP(0);	/* skip with 0 count means skip to next scanline */
+		skip = 0;
+
+		srcrow += pitch;
+	}
+
+	if(bpl < 0) {
+		tile->rle = rlebuf;
+	} else {
+		tile->prle[bpl] = rlebuf;
+	}
+}

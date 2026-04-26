@@ -18,7 +18,7 @@ void draw_level_cell(struct level *lvl, struct level_cell *cell, int layer, int 
 		if((tile = get_cell_tile(lvl, cell, i, layer))) {
 			x = destx + offs[i][0];
 			y = desty + offs[i][1];
-			tiles_blit_key(tile, x, y);
+			tiles_blit_rle(tile, x, y);
 		}
 	}
 }
