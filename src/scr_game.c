@@ -6,6 +6,7 @@
 #include "tiles.h"
 #include "level.h"
 #include "rend.h"
+#include "options.h"
 
 #define XSCROLL_MAX		CELL_XSZ
 #define YSCROLL_MAX		240
@@ -13,6 +14,7 @@
 #define COL_SIZE		(CELL_XSZ >> 1)
 #define ROW_SIZE		(CELL_YSZ >> 1)
 
+static int vsync;
 static int prev_mx, prev_my;
 
 static struct level lvl;
@@ -27,7 +29,12 @@ static struct tileimg *font[96];
 static int text_color = 0xff;
 
 
-static void gprintf(int x, int y, const char *fmt, ...);
+#define MAX_VIS_CELLS	256
+static struct level_cell *viscells[MAX_VIS_CELLS];
+static unsigned int num_vis;
+
+static void draw_bitplane(int bpl);
+static void gprintf(int x, int y, int bpl, const char *fmt, ...);
 
 
 static int scrgame_init(void)
@@ -37,8 +44,6 @@ static int scrgame_init(void)
 	if(load_level(&lvl, "data/dbglevel.tmj") == -1) {
 		return -1;
 	}
-
-	xscroll = yscroll = 0;
 
 	/* define a cell selection tile */
 	seltile = tiles_define(&tileset, 64, 480, CELL_XSZ, CELL_YSZ);
@@ -79,8 +84,11 @@ static int scrgame_start(void)
 
 	vga_setpitch(VGA_PITCH);
 
+	xscroll = yscroll = 0;
 	mouse_mode = 0;
+	num_vis = 0;
 
+	vsync = opt.vsync;
 	nframes = 0;
 	last_fps_upd = time_msec;
 	return 0;
@@ -97,6 +105,8 @@ static void update(void)
 	static long prev_upd;
 	static int xacc, yacc;
 	long dt;
+	int i, j, x, y;
+	struct level_cell *cell;
 
 	dt = time_msec - prev_upd;
 	if(dt < 16) return;
@@ -120,17 +130,35 @@ static void update(void)
 	yscroll += yacc >> 16;
 	xacc -= xacc & (int)0xffff0000;
 	yacc -= yacc & (int)0xffff0000;
+
+	/* compute the list of visible cells */
+	num_vis = 0;
+	cell = lvl.cells;
+	for(i=0; i<lvl.size; i++) {
+		for(j=0; j<lvl.size; j++) {
+			cell_to_vscr(j, i, &x, &y);
+
+			x -= xscroll;
+			y -= yscroll;
+
+			if(x >= -CELL_XSZ && x < FB_WIDTH + TILE_XSZ && y >= -CELL_YSZ &&
+					y < FB_HEIGHT + TILE_YSZ) {
+				viscells[num_vis++] = cell;
+				cell->x = x;
+				cell->y = y;
+			}
+
+			cell++;
+		}
+	}
 }
 
-#define XCELLS		((320 + TILE_XSZ + CELL_XSZ - 1) / CELL_XSZ)
-#define YCELLS		(2 * (240 + TILE_YSZ + CELL_YSZ - 1) / CELL_YSZ)
+static char fps_text[32];
 
 static void scrgame_display(void)
 {
-	static char fps_text[32];
+	int i;
 	long fps, elapsed;
-	int i, j, x, y, mouse_cx, mouse_cy;
-	struct level_cell *cell;
 
 	nframes++;
 	if((elapsed = time_msec - last_fps_upd) >= 1500) {
@@ -144,21 +172,22 @@ static void scrgame_display(void)
 
 	vga_clearfb(0);
 
-	cell = lvl.cells;
-	for(i=0; i<lvl.size; i++) {
-		for(j=0; j<lvl.size; j++) {
-			cell_to_vscr(j, i, &x, &y);
+	for(i=0; i<4; i++) {
+		vga_planemask(1 << i);
+		draw_bitplane(i);
+	}
 
-			x -= xscroll;
-			y -= yscroll;
+	vga_pgflip(vsync);
+}
 
-			if(x >= -CELL_XSZ && x < FB_WIDTH + TILE_XSZ && y >= -CELL_YSZ &&
-					y < FB_HEIGHT + TILE_YSZ) {
-				draw_level_cell(&lvl, cell, 0, x, y);
-			}
+static void draw_bitplane(int bpl)
+{
+	int i, j, x, y, mouse_cx, mouse_cy;
+	struct level_cell *cell;
 
-			cell++;
-		}
+	for(i=0; i<num_vis; i++) {
+		cell = viscells[i];
+		draw_level_cell(&lvl, cell, 0, cell->x, cell->y, bpl);
 	}
 
 	/* mouseover highlight */
@@ -167,14 +196,14 @@ static void scrgame_display(void)
 		cell_to_vscr(mouse_cx, mouse_cy, &x, &y);
 		x -= xscroll;
 		y -= yscroll;
-		tiles_blit_rle(seltile, x - CELL_XSZ / 2, y - CELL_YSZ / 2);
+		tiles_blit_rle(seltile, x - CELL_XSZ / 2, y - CELL_YSZ / 2, bpl);
 	}
 
-	tiles_blit_rle(cursors[mouse_mode], mouse_x, mouse_y);
+	tiles_blit_rle(cursors[mouse_mode], mouse_x, mouse_y, bpl);
 
-	gprintf(0, 0, fps_text);
-
-	vga_pgflip(1);
+	gprintf(0, 0, bpl, fps_text);
+	gprintf(0, 8, bpl, "vsync: %s", vsync ? "on" : "off");
+	gprintf(120, 0, bpl, "vis: %d", num_vis);
 }
 
 static void scrgame_keyb(int key, int press)
@@ -182,8 +211,24 @@ static void scrgame_keyb(int key, int press)
 	if(!press) return;
 
 	switch(key) {
+	case 'd':
+		xscroll++;
+		break;
+	case 'a':
+		xscroll--;
+		break;
+	case 's':
+		yscroll++;
+		break;
+	case 'w':
+		yscroll--;
+		break;
 	case '\t':
 		mouse_mode ^= 1;
+		break;
+
+	case 'v':
+		vsync ^= 1;
 		break;
 
 	default:
@@ -233,7 +278,7 @@ struct app_screen scr_game = {
 };
 
 
-static void gprintf(int x, int y, const char *fmt, ...)
+static void gprintf(int x, int y, int bpl, const char *fmt, ...)
 {
 	static char buf[1024];
 	va_list ap;
@@ -246,7 +291,7 @@ static void gprintf(int x, int y, const char *fmt, ...)
 
 	while((c = *s++)) {
 		if(c >= FONT_OFFS && c < 128) {
-			tiles_fill_rle(font[c - 32], x, y, text_color);
+			tiles_fill_rle(font[c - 32], x, y, text_color, bpl);
 		}
 		x += 8;
 	}

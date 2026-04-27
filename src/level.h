@@ -29,6 +29,7 @@ enum {
 
 struct level_cell {
 	int cx, cy;				/* cell coordinates */
+	int x, y;				/* place for computed pixel coordinates */
 	unsigned int flags;
 
 	struct level_cell *dirty_next;

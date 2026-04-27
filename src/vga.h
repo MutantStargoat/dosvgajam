@@ -3,20 +3,29 @@
 
 #include "szint.h"
 
+/* horizontal guard band: 32 pixels (a single tile) */
+#define XGUARD	32
+/* vertical guard band: 16 pixels (a single tile) */
+#define YGUARD	16
+
+
 #ifdef MSDOS
 #include "vgaregs.h"
 #include "dosutil.h"
 
 #define VGA_MODEX
-/* horizontal guard band: 32 pixels (a single tile) */
-#define VGA_PITCH	(80 + 32/4)
+#define VGA_PITCH	((320 + XGUARD) / 4)
 
 #else
 
 #define VGA_LFB
-#define VGA_PITCH	(320 + 32)
+#define VGA_PITCH	(320 + XGUARD)
 
 #endif
+
+#define SCANLEN		VGA_PITCH
+#define TOTAL_LINES	(FB_HEIGHT + 2 * YGUARD)
+#define GUARD_OFFS	(YGUARD * SCANLEN + XGUARD)
 
 extern uint8_t *vga_backbuf;
 extern unsigned int vga_pitch;
@@ -55,6 +64,9 @@ void vga_fillrect(uint8_t *vmem, int x, int y, int w, int h, uint8_t color);
 	(outp(VGA_CRTC_ADDR_PORT, reg), inp(VGA_CRTC_DATA_PORT))
 #define vga_crtc_wrmask(reg, data, mask) \
 	outp(VGA_CRTC_DATA_PORT, (crtc_read(reg) & ~(mask)) | (data))
+
+#else
+#define vga_planemask(mask)
 #endif	/* defined(MSDOS) */
 
 #endif	/* VGA_H_ */

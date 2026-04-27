@@ -47,12 +47,6 @@ static PROC wgl_swap_interval_ext;
 static int create_glfb(void);
 static void set_vsync(int vsync);
 
-#define XGUARD	32
-#define YGUARD	16
-
-#define SCANLEN		(FB_WIDTH + XGUARD)
-#define TOTAL_LINES	(FB_HEIGHT + 2 * YGUARD)
-#define GUARD_OFFS	(YGUARD * SCANLEN + XGUARD)
 
 int vga_setmodex(void)
 {

@@ -55,6 +55,9 @@ int init_logger(const char *fname)
 
 void stop_logger(void)
 {
+	fflush(stdout);
+	fflush(stderr);
+
 	if(logfd >= 0) {
 		close(logfd);
 		logfd = -1;

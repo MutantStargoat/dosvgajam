@@ -221,39 +221,48 @@ vga_blitfb_:
 	; vga_backbuf is the linear address of the back buffer in video RAM
 	; either a0000 or a4b00. Only the high byte needs ot be changed to flip
 	; between them, and masking with ffff gives the CRTC start address.
-	; XXX game-specific: a0580h/a5d80h
+	; XXX game-specific: a0588h/a5d88h
 	global vga_pgflip_
 vga_pgflip_:
 	push ebx
 	push edx
-	push eax
+
 	; set the current backbuffer as the new CRTC scanout start address
 	mov ebx, [_vga_backbuf]
 	mov bl, 0ch		; CRTC start address high register
 
-	; only proceed if we're out of vblank, otherwise we might think we've
-	; set a new scanout address, but it might not be latched until the next
-	; vblank, and we'll be drawing over the scanout buffer in the meantime.
-	mov dx, STAT1_PORT
-.wait:	in al, dx
-	and al, 8
-	jnz .wait
+	push eax
+	; was vsync requested? if not skip the wait (but see next comment block)
+	test eax, eax
+	jz .nowait
 
+	; wait for vblank. The CRTC address is latched at the end of vblank
+	; so without waiting (if arg is 0), we will end up swapping pointers
+	; without the flip having taken place for another frame, and proceed to
+	; write all over the scanout buffer. But it's still useful for
+	; performance measurements, even if it will flicker badly.
+
+	mov dx, STAT1_PORT
+.invbl:	in al, dx
+	and al, 8
+	jnz .invbl
+.nowait:
+
+	; make the change, only the high register needs to change
 	mov dx, CRTC_ADDR
 	mov ax, bx		; get previously prepared reg addr and value
 	out dx, ax
-	; clear low bits and flip the backbuffer pointer
+	; flip the backbuffer pointer (a0588h xor a5d88h = 5800h)
 	xor word [_vga_backbuf], 5800h
 
 	pop eax
-	; then, if vsync was requested, wait until we enter vblank
 	test eax, eax
 	jz .end
+	; if vsync was requested, wait until vblank starts
 	mov dx, STAT1_PORT
-.waitvblank:
-	in al, dx
+.waitbl:in al, dx
 	and al, 8
-	jz .waitvblank
+	jz .waitbl
 
 .end:	pop edx
 	pop ebx

@@ -131,10 +131,12 @@ struct tileimg *tiles_define(struct tileset *ts, int x, int y, int w, int h)
 }
 
 #ifdef VGA_LFB
-void tiles_blit_key(struct tileimg *tile, int x, int y)
+void tiles_blit_key(struct tileimg *tile, int x, int y, int bpl)
 {
 	int i, j;
 	uint8_t *src, *dst, ckey = tile->sheet->ckey;
+
+	if(bpl) return;
 
 	x -= tile->xorg;
 	y -= tile->yorg;
@@ -159,10 +161,12 @@ void tiles_blit_key(struct tileimg *tile, int x, int y)
 	}
 }
 
-void tiles_fill_rle(struct tileimg *tile, int x, int y, int cidx)
+void tiles_fill_rle(struct tileimg *tile, int x, int y, int cidx, int bpl)
 {
 	unsigned int rle, op, count;
 	uint8_t *rleptr, *end, *dst, *dstrow;
+
+	if(bpl) return;
 
 	x -= tile->xorg;
 	y -= tile->yorg;
@@ -203,17 +207,17 @@ void tiles_fill_rle(struct tileimg *tile, int x, int y, int cidx)
 	}
 }
 
-void tiles_blit_rle(struct tileimg *tile, int x, int y)
+void tiles_blit_rle(struct tileimg *tile, int x, int y, int bpl)
 {
-	tiles_fill_rle(tile, x, y, -1);
+	tiles_fill_rle(tile, x, y, -1, bpl);
 }
 
 #else
 
-void tiles_blit_key(struct tileimg *tile, int x, int y)
+void tiles_blit_key(struct tileimg *tile, int x, int y, int bpl)
 {
-	int i, j, k, offs;
-	unsigned int mask;
+	int i, j, offs;
+	unsigned int align;
 	unsigned int bpwidth = tile->width >> 2;
 	unsigned int srcpitch = tile->sheet->pscansz;
 	uint8_t *src, *dst, ckey = tile->sheet->ckey;
@@ -226,36 +230,28 @@ void tiles_blit_key(struct tileimg *tile, int x, int y)
 	if(y < -16) return;
 	if(y >= FB_HEIGHT) return;
 
+	align = x & 3;
 	offs = y * VGA_PITCH + (x >> 2);
-	mask = 1 << (x & 3);
+	if(bpl < align) offs++;
 
-	for(k=0; k<4; k++) {
-		vga_planemask(mask);
-		src = tile->planeptr[k];
-		dst = vga_backbuf + offs;
-		for(i=0; i<tile->height; i++) {
-			for(j=0; j<bpwidth; j++) {
-				uint8_t pixel = src[j];
-				if(pixel != ckey) {
-					dst[j] = pixel;
-				}
+	src = tile->planeptr[(bpl + 4 - align) & 3];
+	dst = vga_backbuf + offs;
+	for(i=0; i<tile->height; i++) {
+		for(j=0; j<bpwidth; j++) {
+			uint8_t pixel = src[j];
+			if(pixel != ckey) {
+				dst[j] = pixel;
 			}
-			dst += VGA_PITCH;
-			src += srcpitch;
 		}
-
-		mask = (mask << 1) & 0xf;
-		if(!mask) {
-			mask = 1;
-			offs++;
-		}
+		dst += VGA_PITCH;
+		src += srcpitch;
 	}
 }
 
-void tiles_blit_rle(struct tileimg *tile, int x, int y)
+void tiles_blit_rle(struct tileimg *tile, int x, int y, int bpl)
 {
-	int k, offs;
-	unsigned int rle, op, count, mask;
+	int offs;
+	unsigned int rle, op, count, align;
 	uint8_t *rleptr, *end, *dst, *dstrow;
 
 	x -= tile->xorg;
@@ -266,49 +262,40 @@ void tiles_blit_rle(struct tileimg *tile, int x, int y)
 	if(y < -16) return;
 	if(y >= FB_HEIGHT) return;
 
+	align = x & 3;
 	offs = y * VGA_PITCH + (x >> 2);
-	mask = 1 << (x & 3);
+	if(bpl < align) offs++;
 
-	for(k=0; k<4; k++) {
-		rleptr = tile->prle[k];
-		end = rleptr + dynarr_size(rleptr);
+	rleptr = tile->prle[(bpl + 4 - align) & 3];
+	end = rleptr + dynarr_size(rleptr);
+	dst = dstrow = vga_backbuf + offs;
 
-		vga_planemask(mask);
-		dst = dstrow = vga_backbuf + offs;
+	while(rleptr < end) {
+		rle = (unsigned int)*rleptr++;
+		op = rle & RLE_OP_BITS;
+		count = rle & RLE_COUNT_BITS;
 
-		while(rleptr < end) {
-			rle = (unsigned int)*rleptr++;
-			op = rle & RLE_OP_BITS;
-			count = rle & RLE_COUNT_BITS;
-
-			if(op & RLE_OP_COPY) {
-				memcpy(dst, rleptr, count);
+		if(op & RLE_OP_COPY) {
+			memcpy(dst, rleptr, count);
+			dst += count;
+			rleptr += count;
+		} else {
+			/* skip */
+			if(count) {
 				dst += count;
-				rleptr += count;
 			} else {
-				/* skip */
-				if(count) {
-					dst += count;
-				} else {
-					/* skip 0 means next scanline */
-					dstrow += VGA_PITCH;
-					dst = dstrow;
-				}
+				/* skip 0 means next scanline */
+				dstrow += VGA_PITCH;
+				dst = dstrow;
 			}
-		}
-
-		mask = (mask << 1) & 0xf;
-		if(!mask) {
-			mask = 1;
-			offs++;
 		}
 	}
 }
 
-void tiles_fill_rle(struct tileimg *tile, int x, int y, int cidx)
+void tiles_fill_rle(struct tileimg *tile, int x, int y, int cidx, int bpl)
 {
-	int k, offs;
-	unsigned int rle, op, count, mask;
+	int offs;
+	unsigned int rle, op, count, align;
 	uint8_t *rleptr, *end, *dst, *dstrow;
 
 	x -= tile->xorg;
@@ -319,41 +306,32 @@ void tiles_fill_rle(struct tileimg *tile, int x, int y, int cidx)
 	if(y < -16) return;
 	if(y >= FB_HEIGHT) return;
 
+	align = x & 3;
 	offs = y * VGA_PITCH + (x >> 2);
-	mask = 1 << (x & 3);
+	if(bpl < align) offs++;
 
-	for(k=0; k<4; k++) {
-		rleptr = tile->prle[k];
-		end = rleptr + dynarr_size(rleptr);
+	rleptr = tile->prle[(bpl + 4 - align) & 3];
+	end = rleptr + dynarr_size(rleptr);
+	dst = dstrow = vga_backbuf + offs;
 
-		vga_planemask(mask);
-		dst = dstrow = vga_backbuf + offs;
+	while(rleptr < end) {
+		rle = (unsigned int)*rleptr++;
+		op = rle & RLE_OP_BITS;
+		count = rle & RLE_COUNT_BITS;
 
-		while(rleptr < end) {
-			rle = (unsigned int)*rleptr++;
-			op = rle & RLE_OP_BITS;
-			count = rle & RLE_COUNT_BITS;
-
-			if(op & RLE_OP_COPY) {
-				memset(dst, cidx, count);
+		if(op & RLE_OP_COPY) {
+			memset(dst, cidx, count);
+			dst += count;
+			rleptr += count;
+		} else {
+			/* skip */
+			if(count) {
 				dst += count;
-				rleptr += count;
 			} else {
-				/* skip */
-				if(count) {
-					dst += count;
-				} else {
-					/* skip 0 means next scanline */
-					dstrow += VGA_PITCH;
-					dst = dstrow;
-				}
+				/* skip 0 means next scanline */
+				dstrow += VGA_PITCH;
+				dst = dstrow;
 			}
-		}
-
-		mask = (mask << 1) & 0xf;
-		if(!mask) {
-			mask = 1;
-			offs++;
 		}
 	}
 }
