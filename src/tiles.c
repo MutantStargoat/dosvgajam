@@ -180,7 +180,6 @@ void tiles_blit_key(struct tileimg *tile, int x, int y)
 	unsigned int bpwidth = tile->width >> 2;
 	unsigned int srcpitch = tile->sheet->pscansz;
 	uint8_t *src, *dst, ckey = tile->sheet->ckey;
-	/* TODO RLE blit */
 
 	x -= tile->xorg;
 	y -= tile->yorg;
@@ -215,6 +214,7 @@ void tiles_blit_key(struct tileimg *tile, int x, int y)
 		}
 	}
 }
+
 void tiles_blit_rle(struct tileimg *tile, int x, int y)
 {
 	int k, offs;
@@ -317,10 +317,10 @@ static void conv_rle(struct tileimg *tile, int bpl)
 					/* we had non-transparent up to now, add a span */
 					ADD_RLE_SPAN(count, sptr - count);
 					count = 0;
-				} else {
-					/* previous was transparent, increment skip */
-					skip++;
 				}
+
+				skip++;
+
 			} else {
 				/* non-transparent pixel */
 				if(skip) {
