@@ -20,9 +20,12 @@ static int xscroll, yscroll;
 
 struct tileimg *seltile, *cursors[2];
 static int mouse_mode;
+static long last_fps_upd, nframes;
 
 #define FONT_OFFS	32
 static struct tileimg *font[96];
+static int text_color = 0xff;
+
 
 static void gprintf(int x, int y, const char *fmt, ...);
 
@@ -77,6 +80,9 @@ static int scrgame_start(void)
 	vga_setpitch(VGA_PITCH);
 
 	mouse_mode = 0;
+
+	nframes = 0;
+	last_fps_upd = time_msec;
 	return 0;
 }
 
@@ -121,8 +127,18 @@ static void update(void)
 
 static void scrgame_display(void)
 {
+	static char fps_text[32];
+	long fps, elapsed;
 	int i, j, x, y, mouse_cx, mouse_cy;
 	struct level_cell *cell;
+
+	nframes++;
+	if((elapsed = time_msec - last_fps_upd) >= 1500) {
+		fps = 10000 * nframes / elapsed;
+		sprintf(fps_text, "fps: %ld.%ld", fps / 10, fps % 10);
+		last_fps_upd = time_msec;
+		nframes = 0;
+	}
 
 	update();
 
@@ -155,6 +171,8 @@ static void scrgame_display(void)
 	}
 
 	tiles_blit_rle(cursors[mouse_mode], mouse_x, mouse_y);
+
+	gprintf(0, 0, fps_text);
 
 	vga_pgflip(1);
 }
@@ -228,7 +246,7 @@ static void gprintf(int x, int y, const char *fmt, ...)
 
 	while((c = *s++)) {
 		if(c >= FONT_OFFS && c < 128) {
-			tiles_blit_rle(font[c - 32], x, y);
+			tiles_fill_rle(font[c - 32], x, y, text_color);
 		}
 		x += 8;
 	}

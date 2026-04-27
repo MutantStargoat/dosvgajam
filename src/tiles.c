@@ -159,7 +159,7 @@ void tiles_blit_key(struct tileimg *tile, int x, int y)
 	}
 }
 
-void tiles_blit_rle(struct tileimg *tile, int x, int y)
+void tiles_fill_rle(struct tileimg *tile, int x, int y, int cidx)
 {
 	unsigned int rle, op, count;
 	uint8_t *rleptr, *end, *dst, *dstrow;
@@ -183,7 +183,11 @@ void tiles_blit_rle(struct tileimg *tile, int x, int y)
 		count = rle & RLE_COUNT_BITS;
 
 		if(op & RLE_OP_COPY) {
-			memcpy(dst, rleptr, count);
+			if(cidx < 0) {
+				memcpy(dst, rleptr, count);
+			} else {
+				memset(dst, cidx, count);
+			}
 			dst += count;
 			rleptr += count;
 		} else {
@@ -197,6 +201,11 @@ void tiles_blit_rle(struct tileimg *tile, int x, int y)
 			}
 		}
 	}
+}
+
+void tiles_blit_rle(struct tileimg *tile, int x, int y)
+{
+	tiles_fill_rle(tile, x, y, -1);
 }
 
 #else
@@ -274,6 +283,59 @@ void tiles_blit_rle(struct tileimg *tile, int x, int y)
 
 			if(op & RLE_OP_COPY) {
 				memcpy(dst, rleptr, count);
+				dst += count;
+				rleptr += count;
+			} else {
+				/* skip */
+				if(count) {
+					dst += count;
+				} else {
+					/* skip 0 means next scanline */
+					dstrow += VGA_PITCH;
+					dst = dstrow;
+				}
+			}
+		}
+
+		mask = (mask << 1) & 0xf;
+		if(!mask) {
+			mask = 1;
+			offs++;
+		}
+	}
+}
+
+void tiles_fill_rle(struct tileimg *tile, int x, int y, int cidx)
+{
+	int k, offs;
+	unsigned int rle, op, count, mask;
+	uint8_t *rleptr, *end, *dst, *dstrow;
+
+	x -= tile->xorg;
+	y -= tile->yorg;
+
+	if(x < -32) return;
+	if(x >= FB_WIDTH) return;
+	if(y < -16) return;
+	if(y >= FB_HEIGHT) return;
+
+	offs = y * VGA_PITCH + (x >> 2);
+	mask = 1 << (x & 3);
+
+	for(k=0; k<4; k++) {
+		rleptr = tile->prle[k];
+		end = rleptr + dynarr_size(rleptr);
+
+		vga_planemask(mask);
+		dst = dstrow = vga_backbuf + offs;
+
+		while(rleptr < end) {
+			rle = (unsigned int)*rleptr++;
+			op = rle & RLE_OP_BITS;
+			count = rle & RLE_COUNT_BITS;
+
+			if(op & RLE_OP_COPY) {
+				memset(dst, cidx, count);
 				dst += count;
 				rleptr += count;
 			} else {

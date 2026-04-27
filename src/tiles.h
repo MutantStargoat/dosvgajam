@@ -37,5 +37,6 @@ struct tileimg *tiles_define(struct tileset *ts, int x, int y, int w, int h);
 
 void tiles_blit_key(struct tileimg *tile, int x, int y);
 void tiles_blit_rle(struct tileimg *tile, int x, int y);
+void tiles_fill_rle(struct tileimg *tile, int x, int y, int cidx);
 
 #endif	/* TILESHEET_H_ */
