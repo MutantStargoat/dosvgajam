@@ -31,6 +31,8 @@ struct tileimg {
 int tiles_load(struct tileset *ts, const char *fname);
 void tiles_destroy(struct tileset *ts);
 
+int dump_tile(struct tileimg *tile, const char *fname);
+
 struct tileimg *tiles_define(struct tileset *ts, int x, int y, int w, int h);
 
 void tiles_blit_key(struct tileimg *tile, int x, int y);

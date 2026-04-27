@@ -72,6 +72,34 @@ void tiles_destroy(struct tileset *ts)
 	free(ts->plane[0]);
 }
 
+int dump_tile(struct tileimg *tile, const char *fname)
+{
+	int i, j;
+	FILE *fp;
+	unsigned char *pptr, pix;
+	unsigned int pitch = tile->sheet->pitch;
+	struct imgcolor *cmap = tile->sheet->cmap;
+
+	if(!(fp = fopen(fname, "wb"))) {
+		return -1;
+	}
+
+	fprintf(fp, "P6\n%d %d\n255\n", tile->width, tile->height);
+
+	pptr = tile->imgptr;
+	for(i=0; i<tile->height; i++) {
+		for(j=0; j<tile->width; j++) {
+			pix = pptr[j];
+			fputc(cmap[pix].r, fp);
+			fputc(cmap[pix].g, fp);
+			fputc(cmap[pix].b, fp);
+		}
+		pptr += pitch;
+	}
+	fclose(fp);
+	return 0;
+}
+
 struct tileimg *tiles_define(struct tileset *ts, int x, int y, int w, int h)
 {
 	struct tileimg *tile = calloc_nf(1, sizeof *tile);

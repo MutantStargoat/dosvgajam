@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include "app.h"
 #include "vga.h"
 #include "tiles.h"
@@ -20,9 +21,16 @@ static int xscroll, yscroll;
 struct tileimg *seltile, *cursors[2];
 static int mouse_mode;
 
+#define FONT_OFFS	32
+static struct tileimg *font[96];
+
+static void gprintf(int x, int y, const char *fmt, ...);
+
 
 static int scrgame_init(void)
 {
+	int i, x, y;
+
 	if(load_level(&lvl, "data/dbglevel.tmj") == -1) {
 		return -1;
 	}
@@ -36,6 +44,17 @@ static int scrgame_init(void)
 	/* another mouse cursor sprite */
 	cursors[1] = tiles_define(&tileset, 128, 496, 16, 16);
 	cursors[1]->xorg = cursors[1]->yorg = 7;
+
+	x = 256;
+	y = 488;
+	for(i=0; i<sizeof font / sizeof *font; i++) {
+		font[i] = tiles_define(&tileset, x, y, 8, 8);
+		x += 8;
+		if(x >= tileset.width) {
+			x = 256;
+			y += 8;
+		}
+	}
 
 	return 0;
 }
@@ -194,3 +213,23 @@ struct app_screen scr_game = {
 	scrgame_keyb,
 	scrgame_mouse, scrgame_motion
 };
+
+
+static void gprintf(int x, int y, const char *fmt, ...)
+{
+	static char buf[1024];
+	va_list ap;
+	char *s = buf;
+	int c;
+
+	va_start(ap, fmt);
+	vsprintf(buf, fmt, ap);
+	va_end(ap);
+
+	while((c = *s++)) {
+		if(c >= FONT_OFFS && c < 128) {
+			tiles_blit_rle(font[c - 32], x, y);
+		}
+		x += 8;
+	}
+}
