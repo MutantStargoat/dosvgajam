@@ -90,3 +90,22 @@ struct tileimg *get_cell_tile(struct level *lvl, struct level_cell *cell, int n,
 	}
 	return 0;
 }
+
+void calc_cell_height(struct level *lvl, struct level_cell *cell)
+{
+	static const int tile_yoffs[] = {0, -TILE_YSZ/2, -TILE_YSZ/2, -TILE_YSZ};
+	int i, j, tile_height;
+	struct tileimg *tile;
+
+	cell->height = 0;
+	for(i=0; i<lvl->num_layers; i++) {
+		for(j=0; j<4; j++) {
+			if((tile = get_cell_tile(lvl, cell, j, i))) {
+				tile_height = tile->height + tile_yoffs[j];
+				if(tile_height > cell->height) {
+					cell->height = tile_height;
+				}
+			}
+		}
+	}
+}

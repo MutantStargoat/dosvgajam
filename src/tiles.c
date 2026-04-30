@@ -195,6 +195,7 @@ void tiles_fill_rle(struct tileimg *tile, int x, int y, int cidx, int bpl)
 
 	if(x < -32) return;
 	if(x >= FB_WIDTH) return;
+	if(y >= FB_HEIGHT) return;
 
 	rleptr = tile->rle;
 	end = rleptr + dynarr_size(tile->rle);
@@ -282,6 +283,7 @@ void tiles_blit_rle(struct tileimg *tile, int x, int y, int bpl)
 
 	if(x < -32) return;
 	if(x >= FB_WIDTH) return;
+	if(y >= FB_HEIGHT) return;
 
 	align = x & 3;
 	offs = y * VGA_PITCH + (x >> 2);
@@ -327,6 +329,7 @@ void tiles_fill_rle(struct tileimg *tile, int x, int y, int cidx, int bpl)
 
 	if(x < -32) return;
 	if(x >= FB_WIDTH) return;
+	if(y >= FB_HEIGHT) return;
 
 	align = x & 3;
 	offs = y * VGA_PITCH + (x >> 2);

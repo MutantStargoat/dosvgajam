@@ -8,6 +8,9 @@
 #include "rend.h"
 #include "options.h"
 
+/* define to consider all cells visible always */
+#undef DRAW_FULL
+
 #define XSCROLL_MAX		CELL_XSZ
 #define YSCROLL_MAX		240
 
@@ -29,7 +32,11 @@ static struct tileimg *font[96];
 static int text_color = 0xff;
 
 
+#ifdef DRAW_FULL
+#define MAX_VIS_CELLS	8192
+#else
 #define MAX_VIS_CELLS	256
+#endif
 static struct level_cell *viscells[MAX_VIS_CELLS];
 static unsigned int num_vis;
 
@@ -141,12 +148,16 @@ static void update(void)
 			x -= xscroll;
 			y -= yscroll;
 
+#ifndef DRAW_FULL
 			if(x >= -CELL_XSZ && x < FB_WIDTH + TILE_XSZ && y >= -CELL_YSZ &&
-					y < FB_HEIGHT + TILE_YSZ) {
+					y - cell->height < FB_HEIGHT) {
+#endif
 				viscells[num_vis++] = cell;
 				cell->x = x;
 				cell->y = y;
+#ifndef DRAW_FULL
 			}
+#endif
 
 			cell++;
 		}
@@ -206,6 +217,7 @@ static void draw_bitplane(int bpl)
 	gprintf(0, 0, bpl, fps_text);
 	gprintf(0, 8, bpl, "vsync: %s", vsync ? "on" : "off");
 	gprintf(120, 0, bpl, "vis: %d", num_vis);
+	gprintf(120, 8, bpl, "cell: %d,%d", mouse_cx, mouse_cy);
 }
 
 static void scrgame_keyb(int key, int press)
@@ -248,7 +260,7 @@ static void scrgame_mouse(int bn, int press, int x, int y)
 	if(!press) return;
 
 	if(bn == 0) {
-		vscr_to_cell(mouse_x - xscroll, mouse_y - yscroll, &cx, &cy);
+		vscr_to_cell(mouse_x + xscroll, mouse_y + yscroll, &cx, &cy);
 		printf("mouse %d,%d -> cell %d,%d    (scroll: %d,%d)\n", x, y, cx, cy,
 				xscroll, yscroll);
 	}

@@ -30,6 +30,7 @@ enum {
 struct level_cell {
 	int cx, cy;				/* cell coordinates */
 	int x, y;				/* place for computed pixel coordinates */
+	int height;				/* maximum height of tiles/sprites in cell, for vis */
 	unsigned int flags;
 
 	struct level_cell *dirty_next;
@@ -60,6 +61,8 @@ struct level_cell *get_level_cell(struct level *lvl, int cx, int cy);
 struct level_cell *get_level_cell_vscr(struct level *lvl, int sx, int sy);
 
 struct tileimg *get_cell_tile(struct level *lvl, struct level_cell *cell, int n, int layer);
+
+void calc_cell_height(struct level *lvl, struct level_cell *cell);
 
 /* implicit in these conversions is the tile size: 64x32 */
 static INLINE void vscr_to_grid(int sx, int sy, int32_t *gridx, int32_t *gridy)

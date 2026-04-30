@@ -166,6 +166,9 @@ int load_level(struct level *lvl, const char *fname)
 			if(get_cell_tile(lvl, cell, 0, 0)) {
 				cell->flags |= CELL_WALK;
 			}
+
+			calc_cell_height(lvl, cell);
+
 			/* TODO determine exit directions */
 			cell++;
 		}
