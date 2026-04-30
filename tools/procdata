@@ -1,0 +1,28 @@
+#!/bin/sh
+
+force=false
+
+for arg in $*; do
+	case "$arg" in
+	-f|--force)
+		force=true
+		;;
+	esac
+done
+
+mkdir -p data
+
+copy()
+{
+	for i in $*; do
+		dest=data/`basename $i`
+		if $force || [ ! -e $dest -o $i -nt $dest ]; then
+			echo "copy $i -> $dest"
+			cp $i $dest
+		fi
+	done
+}
+
+# copy test level
+copy datasrc/testlvl/*.t?j
+copy datasrc/testlvl/tiles.png

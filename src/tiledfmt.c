@@ -9,6 +9,7 @@
 struct tileset_info {
 	int width, height;
 	int tile_width, tile_height;
+	int xoffs, yoffs;
 	int firstgid;
 	const char *imgfile;
 
@@ -159,10 +160,11 @@ int load_level(struct level *lvl, const char *fname)
 	cell = lvl->cells;
 	for(i=0; i<lvl->size; i++) {
 		for(j=0; j<lvl->size; j++) {
+			cell->cx = j;
+			cell->cy = i;
+
 			if(get_cell_tile(lvl, cell, 0, 0)) {
 				cell->flags |= CELL_WALK;
-				cell->cx = j;
-				cell->cy = i;
 			}
 			/* TODO determine exit directions */
 			cell++;
@@ -213,6 +215,8 @@ static int load_tsinfo(struct tileset_info *tsi, const char *fname)
 	tsi->height = json_lookup_int(&json, "imageheight", 0);
 	tsi->tile_width = json_lookup_int(&json, "tilewidth", 0);
 	tsi->tile_height = json_lookup_int(&json, "tileheight", 0);
+	tsi->xoffs = json_lookup_int(&json, "tileoffset.x", 0);
+	tsi->yoffs = json_lookup_int(&json, "tileoffset.y", 0);
 	tsi->tiles = 0;
 
 	if(!(str = json_lookup_str(&json, "image", 0))) {
@@ -230,6 +234,7 @@ static struct tileimg *get_global_tile(int id)
 {
 	int i, idx, x, y, tile_x, tile_y, row_tiles, num_tiles;
 	struct tileset_info *best = tsinfo;
+	struct tileimg *tile;
 
 	if(id <= 0) return 0;
 
@@ -239,7 +244,7 @@ static struct tileimg *get_global_tile(int id)
 		}
 	}
 
-	idx = id - 1;
+	idx = id - best->firstgid;
 	row_tiles = best->width / best->tile_width;
 	tile_y = idx / row_tiles;
 	tile_x = idx % row_tiles;
@@ -255,5 +260,8 @@ static struct tileimg *get_global_tile(int id)
 	}
 
 	/* not found, define it */
-	return tiles_define(&tileset, x, y, best->tile_width, best->tile_height);
+	tile = tiles_define(&tileset, x, y, best->tile_width, best->tile_height);
+	tile->xorg = best->xoffs;
+	tile->yorg = best->yoffs;
+	return tile;
 }

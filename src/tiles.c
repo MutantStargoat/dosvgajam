@@ -84,7 +84,29 @@ int dump_tile(struct tileimg *tile, const char *fname)
 		return -1;
 	}
 
-	fprintf(fp, "P6\n%d %d\n255\n", tile->width, tile->height);
+	fprintf(fp, "P6\n%d %d\n", tile->width, tile->height);
+
+	if(tile->rle) {
+		uint8_t *rle = tile->rle;
+		uint8_t *end = rle + dynarr_size(tile->rle);
+		while(rle < end) {
+			int op = *rle & RLE_OP_BITS;
+			int count = *rle++ & RLE_COUNT_BITS;
+
+			if(op == RLE_OP_COPY) {
+				fprintf(fp, "# COPY %d\n", count);
+				rle += count;
+			} else {
+				if(!count) {
+					fprintf(fp, "# NEWLINE\n");
+				} else {
+					fprintf(fp, "# SKIP %d\n", count);
+				}
+			}
+		}
+	}
+
+	fprintf(fp, "255\n");
 
 	pptr = tile->imgptr;
 	for(i=0; i<tile->height; i++) {
@@ -173,8 +195,6 @@ void tiles_fill_rle(struct tileimg *tile, int x, int y, int cidx, int bpl)
 
 	if(x < -32) return;
 	if(x >= FB_WIDTH) return;
-	if(y < -16) return;
-	if(y >= FB_HEIGHT) return;
 
 	rleptr = tile->rle;
 	end = rleptr + dynarr_size(tile->rle);
@@ -187,10 +207,12 @@ void tiles_fill_rle(struct tileimg *tile, int x, int y, int cidx, int bpl)
 		count = rle & RLE_COUNT_BITS;
 
 		if(op & RLE_OP_COPY) {
-			if(cidx < 0) {
-				memcpy(dst, rleptr, count);
-			} else {
-				memset(dst, cidx, count);
+			if(y >= 0) {
+				if(cidx < 0) {
+					memcpy(dst, rleptr, count);
+				} else {
+					memset(dst, cidx, count);
+				}
 			}
 			dst += count;
 			rleptr += count;
@@ -200,6 +222,7 @@ void tiles_fill_rle(struct tileimg *tile, int x, int y, int cidx, int bpl)
 				dst += count;
 			} else {
 				/* skip 0 means next scanline */
+				if(++y >= FB_HEIGHT) return;
 				dstrow += VGA_PITCH;
 				dst = dstrow;
 			}
@@ -259,8 +282,6 @@ void tiles_blit_rle(struct tileimg *tile, int x, int y, int bpl)
 
 	if(x < -32) return;
 	if(x >= FB_WIDTH) return;
-	if(y < -16) return;
-	if(y >= FB_HEIGHT) return;
 
 	align = x & 3;
 	offs = y * VGA_PITCH + (x >> 2);
@@ -276,7 +297,9 @@ void tiles_blit_rle(struct tileimg *tile, int x, int y, int bpl)
 		count = rle & RLE_COUNT_BITS;
 
 		if(op & RLE_OP_COPY) {
-			memcpy(dst, rleptr, count);
+			if(y >= 0) {
+				memcpy(dst, rleptr, count);
+			}
 			dst += count;
 			rleptr += count;
 		} else {
@@ -285,6 +308,7 @@ void tiles_blit_rle(struct tileimg *tile, int x, int y, int bpl)
 				dst += count;
 			} else {
 				/* skip 0 means next scanline */
+				if(++y >= FB_HEIGHT) return;
 				dstrow += VGA_PITCH;
 				dst = dstrow;
 			}
@@ -303,8 +327,6 @@ void tiles_fill_rle(struct tileimg *tile, int x, int y, int cidx, int bpl)
 
 	if(x < -32) return;
 	if(x >= FB_WIDTH) return;
-	if(y < -16) return;
-	if(y >= FB_HEIGHT) return;
 
 	align = x & 3;
 	offs = y * VGA_PITCH + (x >> 2);
@@ -320,7 +342,9 @@ void tiles_fill_rle(struct tileimg *tile, int x, int y, int cidx, int bpl)
 		count = rle & RLE_COUNT_BITS;
 
 		if(op & RLE_OP_COPY) {
-			memset(dst, cidx, count);
+			if(y >= 0) {
+				memset(dst, cidx, count);
+			}
 			dst += count;
 			rleptr += count;
 		} else {
@@ -329,6 +353,7 @@ void tiles_fill_rle(struct tileimg *tile, int x, int y, int cidx, int bpl)
 				dst += count;
 			} else {
 				/* skip 0 means next scanline */
+				if(++y >= FB_HEIGHT) return;
 				dstrow += VGA_PITCH;
 				dst = dstrow;
 			}

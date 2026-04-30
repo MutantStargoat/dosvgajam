@@ -38,3 +38,7 @@ cleandep:
 cleanlibs:
 	$(MAKE) -C libs/imago clean
 	$(MAKE) -C libs/assfile clean
+
+.PHONY: data
+data:
+	tools/procdata

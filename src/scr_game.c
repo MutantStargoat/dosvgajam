@@ -41,7 +41,7 @@ static int scrgame_init(void)
 {
 	int i, x, y;
 
-	if(load_level(&lvl, "data/dbglevel.tmj") == -1) {
+	if(load_level(&lvl, "data/testlvl.tmj") == -1) {
 		return -1;
 	}
 
@@ -185,9 +185,11 @@ static void draw_bitplane(int bpl)
 	int i, j, x, y, mouse_cx, mouse_cy;
 	struct level_cell *cell;
 
-	for(i=0; i<num_vis; i++) {
-		cell = viscells[i];
-		draw_level_cell(&lvl, cell, 0, cell->x, cell->y, bpl);
+	for(i=0; i<lvl.num_layers; i++) {
+		for(j=0; j<num_vis; j++) {
+			cell = viscells[j];
+			draw_level_cell(&lvl, cell, i, cell->x, cell->y, bpl);
+		}
 	}
 
 	/* mouseover highlight */
