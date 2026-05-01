@@ -139,10 +139,10 @@ static void update(void)
 		yacc += SCROLL_SPEED * dt;
 	}
 	if(app_keydown(KEY_LEFT)) {
-		xacc -= SCROLL_SPEED * dt;
+		xacc -= SCROLL_SPEED * 2 * dt;
 	}
 	if(app_keydown(KEY_RIGHT)) {
-		xacc += SCROLL_SPEED * dt;
+		xacc += SCROLL_SPEED * 2 * dt;
 	}
 
 	xscroll += xacc >> 16;
