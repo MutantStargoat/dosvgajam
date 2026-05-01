@@ -101,7 +101,7 @@ void calc_cell_height(struct level *lvl, struct level_cell *cell)
 	for(i=0; i<lvl->num_layers; i++) {
 		for(j=0; j<4; j++) {
 			if((tile = get_cell_tile(lvl, cell, j, i))) {
-				tile_height = tile->height + tile_yoffs[j];
+				tile_height = tile->height + tile_yoffs[j] + tile->yorg;
 				if(tile_height > cell->height) {
 					cell->height = tile_height;
 				}

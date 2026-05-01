@@ -1,7 +1,7 @@
 	section .text use32
 	bits 32
 
-PITCH		equ (320 + 32) / 4
+PITCH		equ (320 + 64) / 4
 
 SC_ADDR		equ 3c4h	; sequence controller address register
 CRTC_ADDR	equ 3d4h	; CRTC address register
@@ -94,8 +94,8 @@ vga_setmodex_:
 	; initial back buffer is the second page
 	; XXX game-specific tweak: assume 88 byte scanlines for the guard band
 	; and add a vertical guard band of 16 scanlines before each buffer
-	; a0588h/a5d88h
-	mov dword [_vga_backbuf], 0a5d80h
+	; a0c40h/a7340h
+	mov dword [_vga_backbuf], 0a7340h
 
 	; set initial scanout address to page 0. if we never pageflip, we
 	; can just draw to a0000 as usual and it will be visible.
@@ -221,7 +221,7 @@ vga_blitfb_:
 	; vga_backbuf is the linear address of the back buffer in video RAM
 	; either a0000 or a4b00. Only the high byte needs ot be changed to flip
 	; between them, and masking with ffff gives the CRTC start address.
-	; XXX game-specific: a0588h/a5d88h
+	; XXX game-specific: a0c40h/a7340h
 	global vga_pgflip_
 vga_pgflip_:
 	push ebx
@@ -252,8 +252,8 @@ vga_pgflip_:
 	mov dx, CRTC_ADDR
 	mov ax, bx		; get previously prepared reg addr and value
 	out dx, ax
-	; flip the backbuffer pointer (a0588h xor a5d88h = 5800h)
-	xor word [_vga_backbuf], 5800h
+	; flip the backbuffer pointer (a0c40h xor a7340h = 7f00h)
+	xor word [_vga_backbuf], 7f00h
 
 	pop eax
 	test eax, eax

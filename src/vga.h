@@ -3,10 +3,10 @@
 
 #include "szint.h"
 
-/* horizontal guard band: 32 pixels (a single tile) */
-#define XGUARD	32
-/* vertical guard band: 16 pixels (a single tile) */
-#define YGUARD	16
+/* horizontal guard band: 64 pixels (a single cell) */
+#define XGUARD	64
+/* vertical guard band: 32 pixels (a single cell) */
+#define YGUARD	32
 
 
 #ifdef MSDOS

@@ -25,7 +25,7 @@ static struct tileimg *get_global_tile(int id);
 
 int load_level(struct level *lvl, const char *fname)
 {
-	static const char *layer_name[] = {"floor", "walls", 0};
+	static const char *layer_name[] = {"floor", "walls", "void", 0};
 	FILE *fp;
 	long len;
 	char *buf;
@@ -81,7 +81,7 @@ int load_level(struct level *lvl, const char *fname)
 		goto end;
 	}
 
-	if(create_level(lvl, width >> 1, 2) == -1) {
+	if(create_level(lvl, width >> 1, MAX_LAYERS) == -1) {
 		fprintf(stderr, "load_level: failed to create level\n");
 		goto end;
 	}
@@ -264,7 +264,7 @@ static struct tileimg *get_global_tile(int id)
 
 	/* not found, define it */
 	tile = tiles_define(&tileset, x, y, best->tile_width, best->tile_height);
-	tile->xorg = best->xoffs;
-	tile->yorg = best->yoffs;
+	tile->xorg = -best->xoffs;
+	tile->yorg = -best->yoffs;
 	return tile;
 }

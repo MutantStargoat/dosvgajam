@@ -31,6 +31,9 @@ static long last_fps_upd, nframes;
 static struct tileimg *font[96];
 static int text_color = 0xff;
 
+static struct tileimg *hero[8];
+static int dir;
+
 
 #ifdef DRAW_FULL
 #define MAX_VIS_CELLS	8192
@@ -54,6 +57,9 @@ static int scrgame_init(void)
 
 	/* define a cell selection tile */
 	seltile = tiles_define(&tileset, 64, 480, CELL_XSZ, CELL_YSZ);
+	seltile->xorg = CELL_XSZ / 2;
+	seltile->yorg = CELL_YSZ / 2;
+
 	/* define the mouse cursor sprite */
 	cursors[0] = tiles_define(&tileset, 128, 480, 10, 16);
 	/* another mouse cursor sprite */
@@ -69,6 +75,12 @@ static int scrgame_init(void)
 			x = 256;
 			y += 8;
 		}
+	}
+
+	for(i=0; i<8; i++) {
+		hero[i] = tiles_define(&tileset, i * 32, 256, 32, 32);
+		hero[i]->xorg = 16;
+		hero[i]->yorg = 24;
 	}
 
 	return 0;
@@ -181,7 +193,7 @@ static void scrgame_display(void)
 
 	update();
 
-	vga_clearfb(0);
+	/*vga_clearfb(0);*/
 
 	for(i=0; i<4; i++) {
 		vga_planemask(1 << i);
@@ -193,31 +205,39 @@ static void scrgame_display(void)
 
 static void draw_bitplane(int bpl)
 {
-	int i, j, x, y, mouse_cx, mouse_cy;
+	int i, j, x, y, mouse_cx, mouse_cy, hero_cx, hero_cy;
 	struct level_cell *cell;
+
+	vscr_to_cell(FB_WIDTH / 2 + xscroll, FB_HEIGHT / 2 + yscroll, &hero_cx, &hero_cy);
 
 	for(i=0; i<lvl.num_layers; i++) {
 		for(j=0; j<num_vis; j++) {
 			cell = viscells[j];
 			draw_level_cell(&lvl, cell, i, cell->x, cell->y, bpl);
+
+			if(i == 1 && cell->cx == hero_cx && cell->cy == hero_cy) {
+				tiles_blit_rle(seltile, cell->x, cell->y, bpl);
+				tiles_blit_rle(hero[0], FB_WIDTH / 2, FB_HEIGHT / 2, bpl);
+			}
 		}
 	}
 
 	/* mouseover highlight */
-	vscr_to_cell(mouse_x + xscroll, mouse_y + yscroll, &mouse_cx, &mouse_cy);
+	/*vscr_to_cell(mouse_x + xscroll, mouse_y + yscroll, &mouse_cx, &mouse_cy);
 	if(BOUNDCHK(mouse_cx, lvl.size) && BOUNDCHK(mouse_cy, lvl.size)) {
 		cell_to_vscr(mouse_cx, mouse_cy, &x, &y);
 		x -= xscroll;
 		y -= yscroll;
-		tiles_blit_rle(seltile, x - CELL_XSZ / 2, y - CELL_YSZ / 2, bpl);
+		tiles_blit_rle(seltile, x, y, bpl);
 	}
+	*/
 
 	tiles_blit_rle(cursors[mouse_mode], mouse_x, mouse_y, bpl);
 
 	gprintf(0, 0, bpl, fps_text);
 	gprintf(0, 8, bpl, "vsync: %s", vsync ? "on" : "off");
 	gprintf(120, 0, bpl, "vis: %d", num_vis);
-	gprintf(120, 8, bpl, "cell: %d,%d", mouse_cx, mouse_cy);
+	gprintf(120, 8, bpl, "cell: %d,%d", hero_cx, hero_cy);
 }
 
 static void scrgame_keyb(int key, int press)

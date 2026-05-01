@@ -163,9 +163,9 @@ void tiles_blit_key(struct tileimg *tile, int x, int y, int bpl)
 	x -= tile->xorg;
 	y -= tile->yorg;
 
-	if(x < -32) return;
+	if(x < -XGUARD) return;
 	if(x >= FB_WIDTH) return;
-	if(y < -16) return;
+	if(y < -YGUARD) return;
 	if(y >= FB_HEIGHT) return;
 
 	src = tile->imgptr;
@@ -193,7 +193,7 @@ void tiles_fill_rle(struct tileimg *tile, int x, int y, int cidx, int bpl)
 	x -= tile->xorg;
 	y -= tile->yorg;
 
-	if(x < -32) return;
+	if(x < -XGUARD) return;
 	if(x >= FB_WIDTH) return;
 	if(y >= FB_HEIGHT) return;
 
@@ -249,9 +249,9 @@ void tiles_blit_key(struct tileimg *tile, int x, int y, int bpl)
 	x -= tile->xorg;
 	y -= tile->yorg;
 
-	if(x < -32) return;
+	if(x < -XGUARD) return;
 	if(x >= FB_WIDTH) return;
-	if(y < -16) return;
+	if(y < -YGUARD) return;
 	if(y >= FB_HEIGHT) return;
 
 	align = x & 3;
@@ -281,7 +281,7 @@ void tiles_blit_rle(struct tileimg *tile, int x, int y, int bpl)
 	x -= tile->xorg;
 	y -= tile->yorg;
 
-	if(x < -32) return;
+	if(x < -XGUARD) return;
 	if(x >= FB_WIDTH) return;
 	if(y >= FB_HEIGHT) return;
 
@@ -327,7 +327,7 @@ void tiles_fill_rle(struct tileimg *tile, int x, int y, int cidx, int bpl)
 	x -= tile->xorg;
 	y -= tile->yorg;
 
-	if(x < -32) return;
+	if(x < -XGUARD) return;
 	if(x >= FB_WIDTH) return;
 	if(y >= FB_HEIGHT) return;
 
