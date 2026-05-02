@@ -93,7 +93,7 @@ static void scrgame_destroy(void)
 
 static int scrgame_start(void)
 {
-	int i;
+	int i, x, y;
 
 	vga_setpal(0, 0, 0, 0);
 	for(i=1; i<tileset.ncolors; i++) {
@@ -106,6 +106,10 @@ static int scrgame_start(void)
 	xscroll = yscroll = 0;
 	mouse_mode = 0;
 	num_vis = 0;
+
+	grid_to_vscr(lvl.startx, lvl.starty, &x, &y);
+	xscroll = x - 160;
+	yscroll = y - 120;
 
 	vsync = opt.vsync;
 	nframes = 0;

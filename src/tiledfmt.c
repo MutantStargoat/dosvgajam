@@ -22,6 +22,7 @@ static int num_tsets;
 
 static int load_tsinfo(struct tileset_info *tsi, const char *fname);
 static struct tileimg *get_global_tile(int id);
+static int load_gameobj(struct level *lvl, struct json_obj *jobj);
 
 int load_level(struct level *lvl, const char *fname)
 {
@@ -29,8 +30,8 @@ int load_level(struct level *lvl, const char *fname)
 	FILE *fp;
 	long len;
 	char *buf;
-	const char *str;
-	struct json_obj json, *jobj;
+	const char *str, *typestr;
+	struct json_obj json, *jobj, *jobjobj = 0;
 	struct json_item *jitem;
 	struct json_arr *jarr, *jdata;
 	int i, j, width, height, layer_idx, res = -1;
@@ -141,6 +142,14 @@ int load_level(struct level *lvl, const char *fname)
 		if(jarr->val[i].type != JSON_OBJ) continue;
 		jobj = &jarr->val[i].obj;
 		if(!(str = json_lookup_str(jobj, "name", 0))) continue;
+		typestr = json_lookup_str(jobj, "type", 0);
+
+		if(strcmp(typestr, "objectgroup") == 0) {
+			/* object layer, save it for later and continue */
+			jobjobj = jobj;
+			continue;
+		}
+
 		layer_idx = -1;
 		for(j=0; layer_name[j]; j++) {
 			if(strcmp(str, layer_name[j]) == 0) {
@@ -173,6 +182,9 @@ int load_level(struct level *lvl, const char *fname)
 			cell++;
 		}
 	}
+
+	/* load game objects */
+	load_gameobj(lvl, jobjobj);
 
 	res = 0;
 end:
@@ -267,4 +279,52 @@ static struct tileimg *get_global_tile(int id)
 	tile->xorg = -best->xoffs;
 	tile->yorg = -best->yoffs;
 	return tile;
+}
+
+static int load_gameobj(struct level *lvl, struct json_obj *jobj)
+{
+	int i, x, y, gridx, gridy;
+	struct json_arr *jarr;
+	const char *name, *type;
+
+	if(!(jarr = json_lookup_arr(jobj, "objects", 0))) {
+		return -1;
+	}
+
+	for(i=0; i<jarr->size; i++) {
+		if(jarr->val[i].type != JSON_OBJ) continue;
+
+		jobj = &jarr->val[i].obj;
+		name = json_lookup_str(jobj, "name", 0);
+		type = json_lookup_str(jobj, "type", 0);
+
+		if(strcmp(type, "spawn") == 0) {
+			/* load spawn points */
+			x = json_lookup_int(jobj, "x", -1);
+			y = json_lookup_int(jobj, "y", -1);
+
+			/* coordinates are in vertical tile pixel units, convert to 24.8
+			 * grid units
+			 */
+			gridx = ((x - TILE_YSZ) << 7) / TILE_YSZ;
+			gridy = ((y - TILE_YSZ) << 7) / TILE_YSZ;
+
+			if(!BOUNDCHK(gridx, lvl->size << 8) || !BOUNDCHK(gridy, lvl->size << 8)) {
+				fprintf(stderr, "ignoring invalid spawn point: %s\n", name);
+				continue;
+			}
+
+			if(strcmp(name, "player") == 0) {
+				lvl->startx = gridx;
+				lvl->starty = gridy;
+				printf("player spawn: %s, %s\n", fixpstr(lvl->startx, 8),
+						fixpstr(lvl->starty, 8));
+			} else {
+				fprintf(stderr, "ignoring unknown spawn point: %s\n", name);
+				continue;
+			}
+		}
+	}
+
+	return 0;
 }

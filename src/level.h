@@ -45,6 +45,8 @@ struct level {
 
 	int size, shift;
 	struct level_cell *cells;
+
+	int startx, starty;		/* start cell where player initially spawns */
 };
 
 extern struct tileset tileset;

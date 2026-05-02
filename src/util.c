@@ -170,3 +170,18 @@ unsigned int calc_shift(unsigned int x)
 	}
 	return res;
 }
+
+const char *fixpstr(int32_t x, int nfrac)
+{
+	static int n;
+	static char fmtbuf[4][16];
+	int i, fbits;
+
+	fbits = 0;
+	for(i=0; i<nfrac; i++) {
+		fbits = (fbits << 1) | 1;
+	}
+
+	sprintf(fmtbuf[n], "%d.%d", x >> nfrac, (x & fbits) * 10 >> nfrac);
+	return fmtbuf[n++];
+}

@@ -289,4 +289,6 @@ unsigned int calc_shift(unsigned int x);
 
 #define BOUNDCHK(x, max)	(*(unsigned int*)&(x) < (max))
 
+const char *fixpstr(int32_t x, int nfrac);
+
 #endif	/* UTIL_H_ */
