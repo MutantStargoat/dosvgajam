@@ -17,6 +17,9 @@ struct rect {
 	int x, y, w, h;
 };
 
+enum { DIR_N, DIR_W, DIR_S, DIR_E };
+enum { DIR8_N, DIR8_NW, DIR8_W, DIR8_SW, DIR8_S, DIR8_SE, DIR8_E, DIR8_NE };
+
 enum {
 	CELL_OPEN	= 0x0001,
 	CELL_WALK	= 0x0003,	/* implies open */
@@ -24,7 +27,9 @@ enum {
 	CELL_EXIT_N	= 0x0100,
 	CELL_EXIT_W	= 0x0200,
 	CELL_EXIT_S	= 0x0400,
-	CELL_EXIT_E	= 0x0800
+	CELL_EXIT_E	= 0x0800,
+
+	CELL_EXITS	= CELL_EXIT_N | CELL_EXIT_W | CELL_EXIT_S | CELL_EXIT_E
 };
 
 struct level_cell {
@@ -95,5 +100,7 @@ static INLINE void cell_to_vscr(int cx, int cy, int *sx, int *sy)
 {
 	grid_to_vscr((cx) << 8, (cy) << 8, sx, sy);
 }
+
+const char *strcellflags(unsigned int flags);
 
 #endif	/* LEVEL_H_ */

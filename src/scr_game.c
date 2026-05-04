@@ -6,6 +6,7 @@
 #include "tiles.h"
 #include "level.h"
 #include "rend.h"
+#include "player.h"
 #include "options.h"
 
 /* define to consider all cells visible always */
@@ -34,6 +35,8 @@ static int text_color = 0xff;
 static struct tileimg *hero[8];
 static int dir;
 
+static struct mob player;
+
 
 #ifdef DRAW_FULL
 #define MAX_VIS_CELLS	8192
@@ -44,6 +47,7 @@ static struct level_cell *viscells[MAX_VIS_CELLS];
 static unsigned int num_vis;
 
 static void draw_bitplane(int bpl);
+static void scrollto(int32_t x, int32_t y);
 static void gprintf(int x, int y, int bpl, const char *fmt, ...);
 
 
@@ -107,9 +111,14 @@ static int scrgame_start(void)
 	mouse_mode = 0;
 	num_vis = 0;
 
-	grid_to_vscr(lvl.startx, lvl.starty, &x, &y);
-	xscroll = x - 160;
-	yscroll = y - 120;
+	player.x = lvl.startx;
+	player.y = lvl.starty;
+	player.dir = DIR8_S;
+	player.lvl = &lvl;
+	player.cell = get_level_cell(&lvl, lvl.startx >> 8, lvl.starty >> 8);
+	player.hp = 256;
+
+	scrollto(lvl.startx, lvl.starty);
 
 	vsync = opt.vsync;
 	nframes = 0;
@@ -122,13 +131,12 @@ static void scrgame_stop(void)
 	vga_setpitch(80);
 }
 
-#define SCROLL_SPEED	2048
+#define SCROLL_SPEED	1
 static void update(void)
 {
 	static long prev_upd;
-	static int xacc, yacc;
 	long dt;
-	int i, j, x, y;
+	int i, j, x, y, dx, dy;
 	struct level_cell *cell;
 
 	dt = time_msec - prev_upd;
@@ -136,23 +144,23 @@ static void update(void)
 
 	prev_upd = time_msec;
 
+	dx = dy = 0;
 	if(app_keydown(KEY_UP)) {
-		yacc -= SCROLL_SPEED * dt;
+		dy -= SCROLL_SPEED * dt >> 2;
 	}
 	if(app_keydown(KEY_DOWN)) {
-		yacc += SCROLL_SPEED * dt;
+		dy += SCROLL_SPEED * dt >> 2;
 	}
 	if(app_keydown(KEY_LEFT)) {
-		xacc -= SCROLL_SPEED * 2 * dt;
+		dx -= SCROLL_SPEED * dt >> 2;
 	}
 	if(app_keydown(KEY_RIGHT)) {
-		xacc += SCROLL_SPEED * 2 * dt;
+		dx += SCROLL_SPEED * dt >> 2;
 	}
 
-	xscroll += xacc >> 16;
-	yscroll += yacc >> 16;
-	xacc -= xacc & (int)0xffff0000;
-	yacc -= yacc & (int)0xffff0000;
+	if(mob_move(&player, dx, dy)) {
+		scrollto(player.x, player.y);
+	}
 
 	/* compute the list of visible cells */
 	num_vis = 0;
@@ -197,7 +205,9 @@ static void scrgame_display(void)
 
 	update();
 
-	/*vga_clearfb(0);*/
+#ifdef VGA_LFB
+	vga_clearfb(0);
+#endif
 
 	for(i=0; i<4; i++) {
 		vga_planemask(1 << i);
@@ -209,19 +219,22 @@ static void scrgame_display(void)
 
 static void draw_bitplane(int bpl)
 {
-	int i, j, x, y, mouse_cx, mouse_cy, hero_cx, hero_cy;
+	int i, j, x, y, mouse_cx, mouse_cy, player_cx, player_cy;
 	struct level_cell *cell;
 
-	vscr_to_cell(FB_WIDTH / 2 + xscroll, FB_HEIGHT / 2 + yscroll, &hero_cx, &hero_cy);
+	player_cx = player.cell->cx;
+	player_cy = player.cell->cy;
 
 	for(i=0; i<lvl.num_layers; i++) {
 		for(j=0; j<num_vis; j++) {
 			cell = viscells[j];
 			draw_level_cell(&lvl, cell, i, cell->x, cell->y, bpl);
 
-			if(i == 1 && cell->cx == hero_cx && cell->cy == hero_cy) {
+			if(i == 1 && cell->cx == player_cx && cell->cy == player_cy) {
+				grid_to_vscr(player.x, player.y, &x, &y);
 				tiles_blit_rle(seltile, cell->x, cell->y, bpl);
-				tiles_blit_rle(hero[0], FB_WIDTH / 2, FB_HEIGHT / 2, bpl);
+				/*tiles_blit_rle(hero[0], x - xscroll, y - yscroll, bpl);*/
+				tiles_blit_rle(cursors[1], x - xscroll, y - yscroll, bpl);
 			}
 		}
 	}
@@ -241,7 +254,7 @@ static void draw_bitplane(int bpl)
 	gprintf(0, 0, bpl, fps_text);
 	gprintf(0, 8, bpl, "vsync: %s", vsync ? "on" : "off");
 	gprintf(120, 0, bpl, "vis: %d", num_vis);
-	gprintf(120, 8, bpl, "cell: %d,%d", hero_cx, hero_cy);
+	gprintf(120, 8, bpl, "cell: %d,%d %s", player_cx, player_cy, strcellflags(player.cell->flags));
 }
 
 static void scrgame_keyb(int key, int press)
@@ -314,6 +327,15 @@ struct app_screen scr_game = {
 	scrgame_keyb,
 	scrgame_mouse, scrgame_motion
 };
+
+
+static void scrollto(int32_t gridx, int32_t gridy)
+{
+	int sx, sy;
+	grid_to_vscr(gridx, gridy, &sx, &sy);
+	xscroll = sx - (FB_WIDTH >> 1);
+	yscroll = sy - (FB_HEIGHT >> 1);
+}
 
 
 static void gprintf(int x, int y, int bpl, const char *fmt, ...)

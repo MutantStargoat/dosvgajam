@@ -182,6 +182,7 @@ const char *fixpstr(int32_t x, int nfrac)
 		fbits = (fbits << 1) | 1;
 	}
 
+	n = (n + 1) & 0xf;
 	sprintf(fmtbuf[n], "%d.%d", x >> nfrac, (x & fbits) * 10 >> nfrac);
-	return fmtbuf[n++];
+	return fmtbuf[n];
 }

@@ -23,6 +23,7 @@ static int num_tsets;
 static int load_tsinfo(struct tileset_info *tsi, const char *fname);
 static struct tileimg *get_global_tile(int id);
 static int load_gameobj(struct level *lvl, struct json_obj *jobj);
+static void calc_conn(struct level *lvl);
 
 int load_level(struct level *lvl, const char *fname)
 {
@@ -186,6 +187,9 @@ int load_level(struct level *lvl, const char *fname)
 	/* load game objects */
 	load_gameobj(lvl, jobjobj);
 
+	/* determine connections between cells */
+	calc_conn(lvl);
+
 	res = 0;
 end:
 	free(path);
@@ -327,4 +331,31 @@ static int load_gameobj(struct level *lvl, struct json_obj *jobj)
 	}
 
 	return 0;
+}
+
+static void calc_conn(struct level *lvl)
+{
+	int i, j;
+	struct level_cell *cell;
+
+	cell = lvl->cells;
+	for(i=0; i<lvl->size; i++) {
+		for(j=0; j<lvl->size; j++) {
+			/* first populate the exits based on adjacent cells */
+			cell->flags &= ~CELL_EXITS;
+			if(i > 0 && cell[-lvl->size].flags & CELL_OPEN) {
+				cell->flags |= CELL_EXIT_N;
+			}
+			if(i < lvl->size - 1 && cell[lvl->size].flags & CELL_OPEN) {
+				cell->flags |= CELL_EXIT_S;
+			}
+			if(j > 0 && cell[-1].flags & CELL_OPEN) {
+				cell->flags |= CELL_EXIT_W;
+			}
+			if(j < lvl->size - 1 && cell[1].flags & CELL_OPEN) {
+				cell->flags |= CELL_EXIT_E;
+			}
+			cell++;
+		}
+	}
 }

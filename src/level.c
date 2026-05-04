@@ -109,3 +109,13 @@ void calc_cell_height(struct level *lvl, struct level_cell *cell)
 		}
 	}
 }
+
+const char *strcellflags(unsigned int flags)
+{
+	static char str[8];
+
+	sprintf(str, "%c%c/%c%c%c%c", flags & CELL_OPEN ? 'o' : 'x', flags & CELL_WALK ? 'w' : 'n',
+			flags & CELL_EXIT_N ? 'n' : '-', flags & CELL_EXIT_W ? 'w' : '-',
+			flags & CELL_EXIT_S ? 's' : '-', flags & CELL_EXIT_E ? 'e' : '-');
+	return str;
+}
