@@ -71,6 +71,8 @@ struct tileimg *get_cell_tile(struct level *lvl, struct level_cell *cell, int n,
 
 void calc_cell_height(struct level *lvl, struct level_cell *cell);
 
+const char *strcellflags(unsigned int flags);
+
 /* implicit in these conversions is the tile size: 64x32 */
 static INLINE void vscr_to_grid(int sx, int sy, int32_t *gridx, int32_t *gridy)
 {
@@ -101,6 +103,10 @@ static INLINE void cell_to_vscr(int cx, int cy, int *sx, int *sy)
 	grid_to_vscr((cx) << 8, (cy) << 8, sx, sy);
 }
 
-const char *strcellflags(unsigned int flags);
+static INLINE void grid_to_cell(int32_t gx, int32_t gy, int *cx, int *cy)
+{
+	*cx = (gx + 0x80) >> 8;
+	*cy = (gy + 0x80) >> 8;
+}
 
 #endif	/* LEVEL_H_ */

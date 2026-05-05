@@ -233,8 +233,8 @@ static void draw_bitplane(int bpl)
 			if(i == 1 && cell->cx == player_cx && cell->cy == player_cy) {
 				grid_to_vscr(player.x, player.y, &x, &y);
 				tiles_blit_rle(seltile, cell->x, cell->y, bpl);
-				/*tiles_blit_rle(hero[0], x - xscroll, y - yscroll, bpl);*/
-				tiles_blit_rle(cursors[1], x - xscroll, y - yscroll, bpl);
+				tiles_blit_rle(hero[0], x - xscroll, y - yscroll, bpl);
+				/*tiles_blit_rle(cursors[1], x - xscroll, y - yscroll, bpl);*/
 			}
 		}
 	}

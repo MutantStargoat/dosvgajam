@@ -11,8 +11,7 @@ int mob_move(struct mob *mob, int dx, int dy)
 
 	nx = mob->x + dx + dy;
 	ny = mob->y - dx + dy;
-	ncx = nx >> 8;
-	ncy = ny >> 8;
+	grid_to_cell(nx, ny, &ncx, &ncy);
 
 	cx = mob->cell->cx;
 	cy = mob->cell->cy;
