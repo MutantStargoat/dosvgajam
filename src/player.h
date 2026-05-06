@@ -3,9 +3,16 @@
 
 #include "level.h"
 
+enum {
+	MOB_IDLE,
+	MOB_WALK
+};
+
+#define NUM_WALK_FRAMES	4
+
 struct mob {
 	int32_t x, y;
-	int dir;
+	int state, dir, anmfrm;
 	int hp;
 	struct level *lvl;
 	struct level_cell *cell;

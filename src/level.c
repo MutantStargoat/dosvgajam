@@ -119,3 +119,14 @@ const char *strcellflags(unsigned int flags)
 			flags & CELL_EXIT_S ? 's' : '-', flags & CELL_EXIT_E ? 'e' : '-');
 	return str;
 }
+
+int vec_to_dir8(int dx, int dy)
+{
+	unsigned int mask;
+	static const int dirlut[] = {-1, DIR8_E, DIR8_W, -1, DIR8_S, DIR8_SE,
+		DIR8_SW, -1, DIR8_N, DIR8_NE, DIR8_NW, -1, -1, -1, -1, -1};
+
+	/* bits NSWE */
+	mask = ((dy >> 28) & 8) | ((dx >> 30) & 2) | ((dy > 0) << 2) | (dx > 0);
+	return dirlut[mask];
+}

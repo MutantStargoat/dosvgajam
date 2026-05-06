@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include "player.h"
+#include "level.h"
 #include "util.h"
 
 int mob_move(struct mob *mob, int dx, int dy)
@@ -7,7 +8,10 @@ int mob_move(struct mob *mob, int dx, int dy)
 	int cx, cy, ncx, ncy;
 	int32_t nx, ny;
 
-	if(!(dx | dy)) return 0;
+	if(!(dx | dy)) {
+		mob->state = MOB_IDLE;
+		return 0;
+	}
 
 	nx = mob->x + dx + dy;
 	ny = mob->y - dx + dy;
@@ -35,5 +39,8 @@ int mob_move(struct mob *mob, int dx, int dy)
 
 	mob->x = nx;
 	mob->y = ny;
+	mob->dir = vec_to_dir8(dx, dy);
+	mob->state = MOB_WALK;
+	mob->anmfrm++;
 	return 1;
 }

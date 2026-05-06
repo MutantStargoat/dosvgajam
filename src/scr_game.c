@@ -33,6 +33,7 @@ static struct tileimg *font[96];
 static int text_color = 0xff;
 
 static struct tileimg *hero[8];
+static struct tileimg *walk[8][NUM_WALK_FRAMES];
 static int dir;
 
 static struct mob player;
@@ -53,7 +54,7 @@ static void gprintf(int x, int y, int bpl, const char *fmt, ...);
 
 static int scrgame_init(void)
 {
-	int i, x, y;
+	int i, j, x, y;
 
 	if(load_level(&lvl, "data/testlvl.tmj") == -1) {
 		return -1;
@@ -85,6 +86,12 @@ static int scrgame_init(void)
 		hero[i] = tiles_define(&tileset, i * 32, 256, 32, 32);
 		hero[i]->xorg = 16;
 		hero[i]->yorg = 24;
+
+		for(j=0; j<NUM_WALK_FRAMES; j++) {
+			walk[i][j] = tiles_define(&tileset, i * 32, 288 + j * 32, 32, 32);
+			walk[i][j]->xorg = 16;
+			walk[i][j]->yorg = 24;
+		}
 	}
 
 	return 0;
@@ -221,6 +228,7 @@ static void draw_bitplane(int bpl)
 {
 	int i, j, x, y, mouse_cx, mouse_cy, player_cx, player_cy;
 	struct level_cell *cell;
+	struct tileimg *spr;
 
 	player_cx = player.cell->cx;
 	player_cy = player.cell->cy;
@@ -233,7 +241,18 @@ static void draw_bitplane(int bpl)
 			if(i == 1 && cell->cx == player_cx && cell->cy == player_cy) {
 				grid_to_vscr(player.x, player.y, &x, &y);
 				tiles_blit_rle(seltile, cell->x, cell->y, bpl);
-				tiles_blit_rle(hero[0], x - xscroll, y - yscroll, bpl);
+
+				switch(player.state) {
+				case MOB_WALK:
+					spr = walk[player.dir][(player.anmfrm >> 2) % NUM_WALK_FRAMES];
+					break;
+
+				case MOB_IDLE:
+				default:
+					spr = hero[player.dir];
+				}
+
+				tiles_blit_rle(spr, x - xscroll, y - yscroll, bpl);
 				/*tiles_blit_rle(cursors[1], x - xscroll, y - yscroll, bpl);*/
 			}
 		}
