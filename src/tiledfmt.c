@@ -1,10 +1,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include "level.h"
 #include "tiles.h"
 #include "json.h"
 #include "dynarr.h"
+
+struct tileprop {
+	int id;
+	unsigned int dirblock;
+};
 
 struct tileset_info {
 	int width, height;
@@ -14,6 +20,7 @@ struct tileset_info {
 	const char *imgfile;
 
 	struct tileset *tiles;
+	struct tileprop *tprop;
 };
 
 #define MAX_TILESETS	16
@@ -21,6 +28,7 @@ static struct tileset_info tsinfo[MAX_TILESETS];
 static int num_tsets;
 
 static int load_tsinfo(struct tileset_info *tsi, const char *fname);
+static struct tileset_info *get_tileset_info(int tile_id);
 static struct tileimg *get_global_tile(int id);
 static int load_gameobj(struct level *lvl, struct json_obj *jobj);
 static void calc_conn(struct level *lvl);
@@ -179,7 +187,6 @@ int load_level(struct level *lvl, const char *fname)
 
 			calc_cell_height(lvl, cell);
 
-			/* TODO determine exit directions */
 			cell++;
 		}
 	}
@@ -200,10 +207,14 @@ end:
 static int load_tsinfo(struct tileset_info *tsi, const char *fname)
 {
 	FILE *fp;
+	int i, j;
 	long len;
 	struct json_obj json;
+	struct json_obj *jobj, *jobj_prop;
+	struct json_arr *jarr, *jarr_prop;
 	char *buf;
 	const char *str;
+	struct tileprop prop;
 
 	if(!(fp = fopen(fname, "rb"))) {
 		fprintf(stderr, "failed to open tileset info file: %s\n", fname);
@@ -245,30 +256,120 @@ static int load_tsinfo(struct tileset_info *tsi, const char *fname)
 	tsi->imgfile = strdup_nf(str);
 	tsi->tiles = 0;
 
+	tsi->tprop = dynarr_alloc_nf(0, sizeof *tsi->tprop);
+
+	if((jarr = json_lookup_arr(&json, "tiles", 0))) {
+		for(i=0; i<jarr->size; i++) {
+			if(jarr->val[i].type != JSON_OBJ) {
+				continue;
+			}
+			jobj = &jarr->val[i].obj;
+
+			memset(&prop, 0, sizeof prop);
+
+			if((prop.id = json_lookup_int(jobj, "id", -1)) == -1) {
+				continue;
+			}
+			if(!(jarr_prop = json_lookup_arr(jobj, "properties", 0))) {
+				continue;
+			}
+
+			/* for all properties of a given tile */
+			for(j=0; j<jarr_prop->size; j++) {
+				if(jarr_prop->val[j].type != JSON_OBJ) {
+					continue;
+				}
+				jobj_prop = &jarr_prop->val[j].obj;
+
+				if(!(str = json_lookup_str(jobj_prop, "name", 0))) {
+					continue;
+				}
+				if(strcmp(str, "dirblock") == 0) {
+					if(strcmp(json_lookup_str(jobj_prop, "type", ""), "string") != 0) {
+						continue;
+					}
+					if(!(str = json_lookup_str(jobj_prop, "value", 0))) {
+						continue;
+					}
+					while(*str) {
+						int c = *str++;
+						switch(tolower(c)) {
+						case 'x':
+						case 'w':
+							prop.dirblock |= CELL_EXIT_W;
+							break;
+						case 'y':
+						case 'n':
+							prop.dirblock |= CELL_EXIT_N;
+							break;
+						default:
+							break;
+						}
+					}
+				} else {
+					/* unknown property */
+					continue;
+				}
+
+				dynarr_push_nf(tsi->tprop, &prop);
+			}
+		}
+	}
+
 	json_destroy_obj(&json);
+	return 0;
+}
+
+static struct tileset_info *get_tileset_info(int tile_id)
+{
+	int i;
+	struct tileset_info *best = tsinfo;
+
+	if(tile_id <= 0) return 0;
+
+	for(i=1; i<num_tsets; i++) {
+		if(tsinfo[i].firstgid <= tile_id && tsinfo[i].firstgid > best->firstgid) {
+			best = tsinfo + i;
+		}
+	}
+	return best;
+}
+
+static struct tileprop *get_tile_prop(int tile_id)
+{
+	int i, nprop;
+	struct tileset_info *tsinf;
+
+	if(!(tsinf = get_tileset_info(tile_id))) {
+		return 0;
+	}
+	nprop = dynarr_size(tsinf->tprop);
+	for(i=0; i<nprop; i++) {
+		if(tsinf->tprop[i].id == tile_id) {
+			return tsinf->tprop + i;
+		}
+	}
 	return 0;
 }
 
 static struct tileimg *get_global_tile(int id)
 {
 	int i, idx, x, y, tile_x, tile_y, row_tiles, num_tiles;
-	struct tileset_info *best = tsinfo;
+	struct tileset_info *tsinf;
 	struct tileimg *tile;
 
 	if(id <= 0) return 0;
 
-	for(i=1; i<num_tsets; i++) {
-		if(tsinfo[i].firstgid <= id && tsinfo[i].firstgid > best->firstgid) {
-			best = tsinfo + i;
-		}
+	if(!(tsinf = get_tileset_info(id))) {
+		return 0;
 	}
 
-	idx = id - best->firstgid;
-	row_tiles = best->width / best->tile_width;
+	idx = id - tsinf->firstgid;
+	row_tiles = tsinf->width / tsinf->tile_width;
 	tile_y = idx / row_tiles;
 	tile_x = idx % row_tiles;
-	x = tile_x * best->tile_width;
-	y = tile_y * best->tile_height;
+	x = tile_x * tsinf->tile_width;
+	y = tile_y * tsinf->tile_height;
 
 	num_tiles = dynarr_size(tileset.tiles);
 	for(i=0; i<num_tiles; i++) {
@@ -279,9 +380,10 @@ static struct tileimg *get_global_tile(int id)
 	}
 
 	/* not found, define it */
-	tile = tiles_define(&tileset, x, y, best->tile_width, best->tile_height);
-	tile->xorg = -best->xoffs;
-	tile->yorg = -best->yoffs;
+	tile = tiles_define(&tileset, x, y, tsinf->tile_width, tsinf->tile_height);
+	tile->id = id;
+	tile->xorg = -tsinf->xoffs;
+	tile->yorg = -tsinf->yoffs;
 	return tile;
 }
 
@@ -335,8 +437,10 @@ static int load_gameobj(struct level *lvl, struct json_obj *jobj)
 
 static void calc_conn(struct level *lvl)
 {
-	int i, j;
+	int i, j, k;
 	struct level_cell *cell;
+	struct tileimg *tile;
+	struct tileprop *prop;
 
 	cell = lvl->cells;
 	for(i=0; i<lvl->size; i++) {
@@ -355,6 +459,20 @@ static void calc_conn(struct level *lvl)
 			if(j < lvl->size - 1 && cell[1].flags & CELL_OPEN) {
 				cell->flags |= CELL_EXIT_E;
 			}
+
+			/* then use the dirblock property of the wall tile layer to see if any of
+			 * the previously detected directions should be blocked
+			 */
+			for(k=0; k<3; k++) {	/* 3 for the upper 3 tiles of the cell */
+				if(!(tile = get_cell_tile(lvl, cell, k, 1))) {	/* 1 is the wall layer */
+					continue;
+				}
+				if(!(prop = get_tile_prop(tile->id))) {
+					continue;
+				}
+				cell->flags &= ~(prop->dirblock << 8);
+			}
+
 			cell++;
 		}
 	}

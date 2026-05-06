@@ -34,7 +34,6 @@ static int text_color = 0xff;
 
 static struct tileimg *hero[8];
 static struct tileimg *walk[8][NUM_WALK_FRAMES];
-static int dir;
 
 static struct mob player;
 
