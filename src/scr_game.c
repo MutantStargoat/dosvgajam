@@ -103,7 +103,7 @@ static void scrgame_destroy(void)
 
 static int scrgame_start(void)
 {
-	int i, x, y;
+	int i;
 
 	vga_setpal(0, 0, 0, 0);
 	for(i=1; i<tileset.ncolors; i++) {
@@ -151,16 +151,16 @@ static void update(void)
 	prev_upd = time_msec;
 
 	dx = dy = 0;
-	if(app_keydown(KEY_UP)) {
+	if(app_keydown(KEY_UP) || app_keydown('w')) {
 		dy -= SCROLL_SPEED * dt >> 2;
 	}
-	if(app_keydown(KEY_DOWN)) {
+	if(app_keydown(KEY_DOWN) || app_keydown('s')) {
 		dy += SCROLL_SPEED * dt >> 2;
 	}
-	if(app_keydown(KEY_LEFT)) {
+	if(app_keydown(KEY_LEFT) || app_keydown('a')) {
 		dx -= SCROLL_SPEED * dt >> 2;
 	}
-	if(app_keydown(KEY_RIGHT)) {
+	if(app_keydown(KEY_RIGHT) || app_keydown('d')) {
 		dx += SCROLL_SPEED * dt >> 2;
 	}
 
@@ -280,18 +280,6 @@ static void scrgame_keyb(int key, int press)
 	if(!press) return;
 
 	switch(key) {
-	case 'd':
-		xscroll++;
-		break;
-	case 'a':
-		xscroll--;
-		break;
-	case 's':
-		yscroll++;
-		break;
-	case 'w':
-		yscroll--;
-		break;
 	case '\t':
 		mouse_mode ^= 1;
 		break;

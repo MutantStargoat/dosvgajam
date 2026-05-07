@@ -345,7 +345,7 @@ static struct tileprop *get_tile_prop(int tile_id)
 	}
 	nprop = dynarr_size(tsinf->tprop);
 	for(i=0; i<nprop; i++) {
-		if(tsinf->tprop[i].id == tile_id) {
+		if(tsinf->tprop[i].id == tile_id - tsinf->firstgid) {
 			return tsinf->tprop + i;
 		}
 	}
@@ -470,9 +470,16 @@ static void calc_conn(struct level *lvl)
 				if(!(prop = get_tile_prop(tile->id))) {
 					continue;
 				}
-				cell->flags &= ~(prop->dirblock << 8);
-			}
 
+				cell->flags &= ~prop->dirblock;
+
+				if((prop->dirblock & CELL_EXIT_N) && i > 0) {
+					cell[-lvl->size].flags &= ~CELL_EXIT_S;
+				}
+				if((prop->dirblock & CELL_EXIT_W) && j > 0) {
+					cell[-1].flags &= ~CELL_EXIT_E;
+				}
+			}
 			cell++;
 		}
 	}
