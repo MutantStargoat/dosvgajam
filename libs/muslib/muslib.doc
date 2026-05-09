@@ -1,0 +1,1024 @@
+
+		    MUS Player Library  Version 1.75
+		    ********************************
+
+		      by Vladimir Arnost (Wladows)
+			       QA-Software
+
+		  Internet: xarnos00@dcse.fee.vutbr.cz
+		      FIDO: 2:423/36.2
+
+
+===========================================================================
+				 CONTENTS
+===========================================================================
+
+1 - Overview
+    1.1 - Disclaimer of Warranties
+    1.2 - Terms of Use
+    1.3 - Contacting the Author
+
+2 - MUSLib API functions
+    2.1 - MUSLib Kernel Initialization
+	  2.1.1  - Function MLinit
+	  2.1.2  - Function MLdeinit
+	  2.1.3  - Function MLinitTimer
+	  2.1.4  - Function MLshutdownTimer
+    2.2 - Sound Driver-Related Functions
+	  2.2.1  - Function MLaddDriver
+	  2.2.2  - Function MLfindDriver
+	  2.2.3  - Function MLinitDriver
+	  2.2.4  - Function MLdeinitDriver
+	  2.2.5  - Function MLdriverParam
+	  2.2.6  - Function MLloadBank
+	  2.2.7  - Function MLdetectHardware
+	  2.2.8  - Function MLinitHardware
+	  2.2.9  - Function MLdeinitHardware
+    2.3 - Music Control Functions
+	  2.3.1  - Function MLallocHandle
+	  2.3.2  - Function MLfreeHandle
+	  2.3.3  - Function MLloadMUS
+	  2.3.4  - Function MLfreeMUS
+	  2.3.5  - Function MLplay
+	  2.3.6  - Function MLstop
+	  2.3.7  - Function MLpause
+	  2.3.8  - Function MLunpause
+	  2.3.9  - Function MLgetState
+	  2.3.10 - Function MLsetVolume
+	  2.3.11 - Function MLgetVolume
+	  2.3.12 - Function MLsetLoopCount
+	  2.3.13 - Function MLgetBlock
+    2.4 - Mixer Functions
+	  2.4.1  - Function SBsetMixer
+	  2.4.2  - Function SBgetMixer
+	  2.4.3  - Function SBdetectMixer
+    2.5 - Miscellaneous Functions
+	  2.5.1  - Function MLparseBlaster
+
+3 - Additional Information
+    3.1 - Hardware and Software Requirements
+    3.2 - Future Plans
+    3.3 - Known Bugs
+    3.4 - Credits
+    3.5 - Acknowledgments
+    3.6 - References and Related Products
+
+
+===========================================================================
+ Chapter 1:                      OVERVIEW
+===========================================================================
+
+1.1 - Disclaimer of Warranties
+------------------------------
+
+#ifdef LAWYER
+
+THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+
+#else
+
+Use this software at your own risk.
+
+#endif /* LAWYER */
+
+
+1.2 - Terms of Use
+------------------
+
+This library may be used in any freeware or shareware product free of
+charge. The product may not be sold for profit (except for shareware) and
+should be freely available to the public. It would be nice of you if you
+credited me in your product and notified me if you use this library.
+
+If you want to use this library in a commercial product, contact me
+and we will make an agreement. It is a violation of the law to make money
+of this product without prior signing an agreement and paying a license fee.
+This licence will allow its holder to sell any products based on MUSLib,
+royalty-free. There is no need to buy separate licences for different
+products once the licence fee is paid.
+
+
+1.3 - Contacting the Author
+---------------------------
+
+Internet (address valid probably until the end of year 1998):
+  xarnos00@dcse.fee.vutbr.cz
+
+FIDO:
+  2:423/36.2
+
+Snail-mail:
+
+  Vladimir Arnost
+  Ceska 921
+  Chrudim 4
+  537 01
+  CZECH REPUBLIC
+
+Voice-mail (Czech language only, not recommended; weekends only):
+
+  +42-455-2154
+
+
+===========================================================================
+ Chapter 2:                 MUSLIB API FUNCTIONS
+===========================================================================
+
+The entries in this chapter are laid out in the following format:
+
+
+Function foo
+
+Declaration:	int foo(char *bar);
+
+Actions:	This section gives a brief synopsis of the function.
+
+Parameters:	This section describes the meaning and usage of function's
+		parameters.
+
+Return value:	This section tells you the number returned from this
+		function is absolutely meaningless.  ;->
+
+Remarks:	What you should be aware of.
+
+
+2.1 - MUSLib Kernel Initialization
+==================================
+
+2.1.1 - Function MLinit
+-----------------------
+
+Declaration:	void MLinit(void);
+
+Actions:	Initializes the MUS Player Library.
+
+Parameters:	None.
+
+Return value:	None.
+
+Remarks:	This function must be called before using any other API
+		functions. Not doing so may result in an undefined behavior.
+
+
+2.1.2 - Function MLdeinit
+-------------------------
+
+Declaration:	void MLdeinit(void);
+
+Actions:	Shuts down the library subsystem and frees used resources.
+
+Parameters:	None.
+
+Return value:	None.
+
+Remarks:	This function is called automatically on program exit and
+		it is unnecessary to call it explicitly.
+
+
+2.1.3 - Function MLinitTimer
+----------------------------
+
+Declaration:	int MLinitTimer(int mode);
+
+Actions:	Initializes and starts the timer used for background playing.
+
+Parameters:	`mode' specifies which timer to use. The following constants
+		are defined:
+
+			#define TIMER_CNT18_2	0
+			#define TIMER_CNT140	1
+			#define TIMER_RTC1024	2
+			#define TIMER_RTC512	3
+			#define TIMER_RTC256	4
+			#define TIMER_RTC128	5
+			#define TIMER_RTC64	6
+
+		* `TIMER_CNT18_2' uses the standard system timer (IRQ 8)
+		  running at 18.2 Hz without reprogramming the interrupt
+		  rate. This mode is present only for compatibility reasons
+		  and should not be used unless all other modes fail.
+		  The internal 140 Hz clock is simulated by issuing more
+		  cycles within one 18.2 Hz interrupt. Because of this
+		  feature, the music timing is not smooth and some songs
+		  sound `jerky'.
+
+		* `TIMER_CNT140' uses the system timer with the interrupt
+		  rate reprogrammed to 140 Hz. The system time is kept
+		  running at the default rate of 18.2 Hz. This is the
+		  recommended mode for most applications.
+
+		* `TIMER_RTC1024' uses the Real Clock Timer (RTC) running at
+		  1024 Hz. This timer is only seldom used and as such is an
+		  ideal provider of precise timing. However this timer is
+		  available only under plain DOS. Most other systems like
+		  Windows, OS/2 or Linux DOS Emulator don't allow the
+		  applications to use this timer. Care should be taken if
+		  you are writing protected-mode application. The driver
+		  for this timer works fine under PMODE/W, but fails if run
+		  under DOS/4GW.
+
+		* The timers `TIMER_RTC512' till `TIMER_RTC64' are almost
+		  the same as `TIMER_RTC1024', except for they re-program
+		  the RTC interrupt rate. The reason for adding these timers
+		  was to decrease system load by reducing the number of
+		  interrupt requests. Anyway, 1024Hz is too precise for any
+		  music since the default MUS timer ticks at 140Hz only.
+
+Return value:   Returns zero in the timer was succesfully initialized, and
+		non-zero if an error occurred or an invalid `mode' number
+		was specified.
+
+
+2.1.4 - Function MLshutdownTimer
+--------------------------------
+
+Declaration:	int MLshutdownTimer(void);
+
+Actions:        Shuts down any running timer.
+
+Parameters:	None.
+
+Return value:	Returns 0 upon successful timer termination, and non-zero
+		if an error occurred or the timer was not initialized.
+
+
+2.2 - Sound Driver-Related Functions
+====================================
+
+2.2.1 - Function MLaddDriver
+----------------------------
+
+Declaration:	int MLaddDriver(struct driverBlock *newDriver);
+
+Actions:	Adds the driver block to the active driver list.
+
+Parameters:	`newDriver' is a pointer to a driver descriptor block.
+		The following driver descriptors are defined:
+
+			DUMMYdriver
+			OPL2driver
+			OPL3driver
+			AWE32driver
+			MPU401driver
+			SBMIDIdriver
+
+Return value:	Returns 0 if the driver was successfully added, and non-zero
+		if the driver was already in the list or if the driver could
+		not be initialized.
+
+Remarks:        Failing to call this function results in no music being
+		played back. By default only the DUMMYdriver is present in
+		the list and all other drivers must be added manually.
+
+
+2.2.2 - Function MLfindDriver
+-----------------------------
+
+Declaration:	struct driverBlock *MLfindDriver(uint driverID);
+
+Actions:	Finds the driver descriptor block associated with the driver
+		identification code.
+
+Parameters:	`driverID' may be one of the following constants:
+
+			#define DRV_DUMMY 	0x0000
+			#define DRV_OPL2        0x0001
+			#define DRV_OPL3	0x0002
+			#define DRV_AWE32 	0x0003
+			#define DRV_MPU401	0x0004
+			#define DRV_SBMIDI	0x0005
+
+Return value:	If the driver block does not exist or the driverID contains
+		an invalid number, the function returns NULL. Otherwise
+		the function returns the pointer to the driver descriptor
+		block.
+
+		In the current version of MUSLib the driverBlock looks like
+		this:
+
+		struct driverBlock {
+			struct driverBlock *next;
+			uint	driverID;
+			char	*name;
+			uint	datasize;
+
+			int	(*initDriver)(void);
+			int	(*deinitDriver)(void);
+			int	(*driverParam)(uint message, uint param1,
+					void *param2);
+			int	(*loadBank)(int fd, uint bankNumber);
+			int	(*detectHardware)(uint port, uchar irq,
+					uchar dma);
+			int	(*initHardware)(uint port, uchar irq,
+					uchar dma);
+			int	(*deinitHardware)(void);
+
+			void	(*playNote)(struct musicBlock *mus,
+					uint channel, uchar note, int volume);
+			void	(*releaseNote)(struct musicBlock *mus,
+					uint channel, uchar note);
+			void	(*pitchWheel)(struct musicBlock *mus,
+					uint channel, int pitch);
+			void	(*changeControl)(struct musicBlock *mus,
+					uint channel, uchar controller,
+					int value);
+			void	(*playMusic)(struct musicBlock *mus);
+			void	(*stopMusic)(struct musicBlock *mus);
+			void	(*changeVolume)(struct musicBlock *mus,
+					uint volume);
+			void	(*pauseMusic)(struct musicBlock *mus);
+			void	(*unpauseMusic)(struct musicBlock *mus);
+			int	(*sendMIDI)(uint command, uint par1,
+					uint par2);
+			uint	state; /* 0-not initialized, <>0-initialized */
+		};
+
+Remarks:	The driver descriptor block is an internal data structure
+		which will be changed to implement new features. Therefore
+		the application programs should not rely on its contents.
+
+
+2.2.3 - Function MLinitDriver
+-----------------------------
+
+Declaration:	int MLinitDriver(uint driverID);
+
+Actions:	Initializes internal driver data.
+
+Parameters:	`driverID' is the driver identifier. The driver must be
+		in the active driver list.
+
+Return value:	Returns 0 if the driver was successfully initialized, and
+		non-zero otherwise.
+
+Remarks:	This function is automatically called by MLaddDriver, so
+		it is unnecessary to use this functions unless you have
+		a good reason for it.
+
+
+2.2.4 - Function MLdeinitDriver
+-------------------------------
+
+Declaration:	int MLdeinitDriver(uint driverID);
+
+Actions:	Deinitializes (shuts down) the driver.
+
+Parameters:	`driverID' is the driver identifier. The driver must be
+		in the active driver list.
+
+Return value:	Returns 0 if the driver was successfully shut down, and
+		non-zero otherwise.
+
+Remarks:	This function is automatically called by MLdeinit.
+
+
+2.2.5 - Function MLdriverParam
+------------------------------
+
+Declaration:	int MLdriverParam(uint driverID, uint message, uint param1,
+				  void *param2);
+
+Actions:	Sets driver-specific parameter.
+
+Parameters:	`driverID' is the driver identifier. The driver must be
+		in the active driver list.
+		`message' may be one of these constants:
+
+			#define DP_NOTHING	0x0000
+			#define DP_SYSEX	0x0001
+			#define DP_SINGLE_VOICE	0x0002
+
+		* `DP_NOTHING' is a no-operation placeholder.
+		* `DP_SYSEX' sends a System Exclusive message to a MIDI port.
+		  `param1' is the length in bytes and `param2' points to
+		  an array of bytes containing the SysEx data (including the
+		  0xF0 or 0xF7 event header).
+		* `DP_SINGLE_VOICE' is understood by OPL2/OPL3 drivers.
+		  If `param1' is zero, the driver uses double-voice
+		  instruments if available; if non-zero, the driver is
+		  forced to use always one voice. `param2' is ignored.
+
+		Other message codes may be defined, but codes in the range
+		0x0000-0x00FF are reserved to the MUSLib system.
+
+Return value:	Returns 0 if no error occurred, and non-zero otherwise.
+
+Remarks:	In general, the return value of this function may be
+		driver-specific.
+
+
+2.2.6 - Function MLloadBank
+---------------------------
+
+Declaration:	int MLloadBank(uint driverID, int fd, uint bankNumber);
+
+Actions:	Loads an instrument (patch) bank.
+
+Parameters:	`driverID' is the driver identifier. The driver must be
+		in the active driver list.
+		`fd' is a file descriptor (handle) of a file containing
+		the instrument bank. The file must be opened in binary mode.
+		`bankNumber' is the bank number into which the instruments
+		are to be loaded. Some drivers (OPL2/OPL3) ignore this
+		parameter.
+
+Return value:   Returns 0 if the bank was successfully loaded, and non-zero
+		otherwise (invalid file, file read error, not enough memory,
+		hardware error, etc).
+
+Remarks:	The patch bank should be loaded before the hardware is
+		initialized, because some sound devices are initialized
+		by loading a set of instruments and must be reinitialized
+		in order to change the set of instruments.
+
+
+2.2.7 - Function MLdetectHardware
+---------------------------------
+
+Declaration:	int MLdetectHardware(uint driverID, short port, short irq,
+				     short dma);
+
+Actions:	Detects the presence of the hardware.
+
+Parameters:	`driverID' is the driver identifier. The driver must be
+		in the active driver list.
+		`port', 'irq' and 'dma' are optional device-specific
+		parameters. Some devices don't use DMA or don't generate
+		any interrupts. In this case the respective parameter
+		is unused and should be -1.
+
+Return value:	Returns zero if the hardware was NOT detected, and non-zero
+		otherwise.
+
+Remarks:	Incorrect values of `port', 'irq' and 'dma' may hang the
+		system.
+
+
+2.2.8 - Function MLinitHardware
+-------------------------------
+
+Declaration:	int MLinitHardware(uint driverID, short port, short irq,
+				   short dma);
+
+Actions:	Initializes the hardware for use by MUSLib.
+
+Parameters:	see MLdetectHardware for description
+
+Return value:	Returns 0 if the hardware was initialized successfully, and
+		non-zero otherwise.
+
+
+2.2.9 - Function MLdeinitHardware
+---------------------------------
+
+Declaration:	int MLdeinitHardware(uint driverID);
+
+Actions:	Shuts down all sounds and resets the hardware to the
+		default setting.
+
+Parameters:	`driverID' is the driver identifier. The driver must be
+		in the active driver list.
+
+Return value:	Returns 0 if the hardware was reset successfully, and
+		non-zero otherwise.
+
+
+2.3 - Music Control Functions
+=============================
+
+2.3.1 - Function MLallocHandle
+------------------------------
+
+Declaration:	int MLallocHandle(uint driverID);
+
+Actions:	Allocates a free handle and initializes internal data
+		structures.
+
+Parameters:	`driverID' is the driver identifier. The driver must be
+		in the active driver list.
+
+Return value:	Returns a valid music handle or a negative number if an
+		error occurred (no more handles are available, invalid
+		driver identifier or not enough memory).
+
+Remarks:	The current implementation allows up to 4 handles to be
+		allocated at the same time.
+
+
+2.3.2 - Function MLfreeHandle
+-----------------------------
+
+Declaration:	int MLfreeHandle(uint musHandle);
+
+Actions:	Stops music if still playing, frees any allocated resources
+		and finally marks the handle as unused.
+
+Parameters:	`musHandle' should be a valid music handle.
+
+Return value:	Returns 0 if the handle was successfully freed, and non-zero
+		otherwise (invalid handle).
+
+Remarks:	This function incorporates the actions of MLstop and
+		MLfreeMUS.
+
+
+2.3.3 - Function MLloadMUS
+--------------------------
+
+Declaration:	int MLloadMUS(uint musHandle, int fd, uint memoryFlags);
+
+Actions:	Loads a MUS file into memory.
+
+Parameters:	`musHandle' should be a valid music handle.
+		`fd' is a file descriptor (handle) of a MUS file. The file
+		must be opened in binary mode.
+		`memoryFlags' contains the following bits:
+
+		  ÖÄ7ÄÂÄ6ÄÂÄ5ÄÂÄ4ÄÂÄ3ÄÂÄ2ÄÂÄ1ÄÂÄ0Ä·
+		  º       Unused      ³XMS³EMS³Lowº
+		  ÓÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄÁÄÄÄ½
+
+		  bit 0: if set, allows the file to be loaded into low
+			 (conventional) memory; if reset, keeps the file
+			 from loading low.
+		  bit 1: enables loading into EMS memory
+		  bit 2: enables loading into XMS (HIMEM) memory
+		  bits 3-15 (3-31): unused, should be zero
+
+		If the file is too small it will be loaded low regardless
+		whether the EMS/XMS memory was specified or not. This
+		measure prevents the program from wasting memory, because
+		the MUSLib memory manager keeps a fixed-size buffer (in the
+		order of 1KB) for faster access to the EMS/XMS memory. If
+		the requested file is smaller than the buffer, the buffer
+		is not allocated and the file is forced to load low.
+
+		By default you can leave all these bits set and let the
+		program decide which memory to use.
+
+Return value:   Returns zero if the file was loaded successfully and
+		non-zero if an error occurred (invalid music handle, file
+		read error, invalid file contents or not enough memory).
+
+Remarks:        The music handle should be empty, that means if you want
+		to reuse a handle, you must call MLfreeMUS first.
+
+		Under 32-bit protected mode version, bits 1 and 2 are ignored
+		and the EMS/XMS support is disabled.
+
+
+2.3.4 - Function MLfreeMUS
+--------------------------
+
+Declaration:	int MLfreeMUS(uint musHandle);
+
+Actions:	Frees any loaded music file data from memory and stops the
+		music if still playing.
+
+Parameters:	`musHandle' should be a valid music handle.
+
+Return value:	Returns zero if the music was successfully freed and
+		non-zero otherwise.
+
+
+2.3.5 - Function MLplay
+-----------------------
+
+Declaration:	int MLplay(uint musHandle);
+
+Actions:	Starts music play back. If the music was playing or paused,
+		the song is rewound to the beginning and restarted.
+
+Parameters:	`musHandle' should be a valid music handle.
+
+Return value:	Returns zero on success, and non-zero if an invalid music
+		handle was specified.
+
+
+2.3.6 - Function MLstop
+-----------------------
+
+Declaration:	int MLstop(uint musHandle);
+
+Actions:	Stops any playing or paused music.
+
+Parameters:	`musHandle' should be a valid music handle.
+
+Return value:	Returns zero on success, and non-zero if an invalid music
+		handle was specified.
+
+
+2.3.7 - Function MLpause
+------------------------
+
+Declaration:	int MLpause(uint musHandle);
+
+Actions:	Pauses music. May be nested more than once.
+
+Parameters:	`musHandle' should be a valid music handle.
+
+Return value:	Returns zero on success, and non-zero if an invalid music
+		handle was specified.
+
+Remarks:	The music may be paused more than once at one time.
+		To restore the original state, every call to MLpause
+		must have a corresponding call to MLunpause.
+
+
+2.3.8 - Function MLunpause
+--------------------------
+
+Declaration:	int MLunpause(uint musHandle);
+
+Actions:	Unpauses (restores) music. May be nested more than once.
+
+Parameters:	`musHandle' should be a valid music handle.
+
+Return value:	Returns zero on success, and non-zero if an invalid music
+		handle was specified.
+
+Remarks:	The music may be paused more than once at one time.
+		To restore the original state, every call to MLpause
+		must have an corresponding call to MLunpause.
+
+
+2.3.9 - Function MLgetState
+---------------------------
+
+Declaration:	int MLgetState(uint musHandle);
+
+Actions:	Returns actual music playing state.
+
+Parameters:	`musHandle' should be a valid music handle.
+
+Return value:	Returns a negative number if an invalid music handle was
+		specified or one the following constants:
+
+			#define ST_EMPTY	0
+			#define ST_STOPPED	1
+			#define ST_PLAYING	2
+			#define ST_PAUSED	3
+
+		* `ST_EMPTY' means the block is empty and cannot be played
+		* `ST_STOPPED' means the block contains valid music, but
+		  is not playing or was stopped
+		* `ST_PLAYING' means the music is playing right now
+		* value >= `ST_PAUSED' means the music is paused
+
+Remarks:	Because the music plays on background, its state may change
+		unexpectedly and the value returned from this function may
+		not reflect the reality at the time it is evaluated.
+
+
+2.3.10 - Function MLsetVolume
+-----------------------------
+
+Declaration:	int MLsetVolume(uint musHandle, uint volume);
+
+Actions:	Changes music volume.
+
+Parameters:	`musHandle' should be a valid music handle.
+		`volume' is a new music volume. The default value 256 means
+		normal volume. Values below 256 cause the music to be
+		attenuated and values above 256 amplify the music if
+		possible. However volume value should not exceed 512,
+		because too high values might cause arithmetical overflow
+		and undefined results.
+
+Return value:	Returns zero on success, and non-zero if an invalid music
+		handle was specified.
+
+
+2.3.11 - Function MLgetVolume
+-----------------------------
+
+Declaration:	int MLgetVolume(uint musHandle);
+
+Actions:	Reads actual music volume.
+
+Parameters:	`musHandle' should be a valid music handle.
+
+Return value:	Returns the music volume value or a negative number if an
+		invalid music handle was specified.
+
+
+2.3.12 - Function MLsetLoopCount
+--------------------------------
+
+Declaration:	int MLsetLoopCount(uint musHandle, int count);
+
+Actions:	Sets the number how many times the music should be played.
+
+Parameters:	`musHandle' should be a valid music handle.
+		`count' is the number of loops. If set to -1, the music
+		loops infinitely. 0 and 1 means no looping, play exactly
+		once; 2 means play twice, etc.
+
+Return value:	Returns zero on success, and non-zero if an invalid music
+		handle was specified.
+
+
+2.3.13 - Function MLgetBlock
+----------------------------
+
+Declaration:	struct musicBlock *MLgetBlock(uint musHandle);
+
+Actions:	Returns an address of an internal music descriptor block
+		structure.
+
+Parameters:	`musHandle' should be a valid music handle.
+
+Return value:	Returns NULL if the specified block is not allocated or
+		an invalid music handle was specified. Otherwise returns
+		the address of the descriptor block.
+
+		The music descriptor block is declared in this version of
+		MUSLib in this way:
+
+		struct musicBlock {
+			uint	state;	/* music block state, see ST_xxx */
+			uint	number;	/* block id number */
+			uint	volume;
+			uint	loopcount;
+			uint	channelMask;
+			uint	percussMask;
+			ulong	time;
+			ulong	ticks;
+			uint	playingcount;
+			uint	channelcount;
+			struct memoryBlock	score;
+			struct driverBlock	*driver;
+			void			*driverdata;
+		};
+
+Remarks:	The music descriptor block is an internal data structure
+		which will be changed to implement new features. Therefore
+		the application programs should not rely on its contents.
+
+
+2.4 - Mixer Functions
+=====================
+
+2.4.1 - Function SBsetMixer
+---------------------------
+
+Declaration:	void SBsetMixer(uint SBport, uchar index, uchar data);
+
+Actions:	Writes one Sound Blaster Pro/16 mixer register.
+
+Parameters:	`SBport' is the Sound Blaster base port (default 0x220).
+		`index' is the mixer register number.
+		`data' is the byte to be written to the mixer.
+
+Return value:	None.
+
+Remarks:	See [sblast09] for more information about the Sound Blaster
+		mixer.
+
+
+2.4.2 - Function SBgetMixer
+---------------------------
+
+Declaration:	int SBgetMixer(uint SBport, uchar index);
+
+Actions:	Reads one Sound Blaster Pro/16 mixer register.
+
+Parameters:	`SBport' is the Sound Blaster base port (default 0x220).
+		`index' is the mixer register number.
+
+Return value:   Returns the byte read from the mixer.
+
+
+2.4.3 - Function SBdetectMixer
+------------------------------
+
+Declaration:	int SBdetectMixer(uint port);
+
+Actions:	Detects the presence of Sound Blaster mixer.
+
+Parameters:	`port' is the Sound Blaster base port (default 0x220).
+
+Return value:	Returns zero if the mixer is not found and non-zero
+		otherwise.
+
+Remarks:	This function may be useful for distinguishing between
+		Sound Blaster (does not have a mixer) and Sound Blaster-
+		Pro/Pro II/16 (has a mixer). Another way could be reading
+		the DSP version (see [sblast09]).
+
+
+2.5 - Miscellaneous Functions
+=============================
+
+2.5.1 - Function MLparseBlaster
+-------------------------------
+
+Declaration:	uint MLparseBlaster(const char *format, ...);
+
+Actions:	Parses the BLASTER environment variable and returns the
+		obtained values.
+
+Parameters:	`format' is a string of one-letter field names delimited
+		by colons (':'). The string may also contain the following
+		special characters:
+
+		* '#' - parse as decimal number
+		* '$' - parse as hexadecimal number
+
+		These modifiers affect the rest of the format string and
+		are not local to the field name they precede. Hexadecimal
+		mode is selected by default.
+
+		`...' is a list of pointers to unsigned integers (uint *),
+		that will hold the obtained values.
+
+Return value:	Returns 0 if the BLASTER variable does not exist or none
+		of the specified fields were present. Otherwise, the
+		returned value is a bit-map with each bit equivalent to
+		one field specified in the format string. The bit is set
+		if the field is present, and not set if the field is absent.
+		The first field maps to bit 0, the second to bit 1, etc.
+
+Remarks:	Do not make errors by sending the destination variable value
+		instead of its address. This kind of error will not be
+		signalled by the compiler and may be difficult to find.
+
+		Do not forget to delimit the fields by colons, otherwise
+		all values would be stored into the first destination
+		variable.
+
+Example:	Suppose this setting:
+		  BLASTER=A220 D1 I5 P330 T6
+
+		MLparseBlaster("A:#D:I:$E", &port, &dma, &irq, &EMUport);
+
+		The function returns 7 to indicate that 'A' (1), 'D' (2)
+		and 'I' (4) fields were found, but the 'E' (8) field wasn't.
+		The respective variables will be set the values read from
+		the BLASTER string except EMUport, which will be left
+		untouched. Also note 'A' and 'E' fields are parsed as
+		hexadecimal numbers unlike 'D' and 'I' which are in decimal.
+
+
+===========================================================================
+ Chapter 3:                 ADDITIONAL INFORMATION
+===========================================================================
+
+3.1 - Hardware and Software Requirements
+----------------------------------------
+
+* processor 386 or higher
+* supported sound cards:
+    - Adlib, Sound Blaster (OPL2)
+    - Sound Blaster Pro II, SB 16 (OPL3)
+    - Sound Blaster AWE32 (EMU 8000)
+    - Roland MPU-401 MIDI port (UART mode)
+    - Sound Blaster's built-in MIDI port
+* PC-AT compatible machine (with standard Real-Time Clock chipset and
+  CMOS memory layout)
+* MS-DOS version 3.0+
+* about 128 KB of free conventional memory
+* up to 64 KB of EMS or XMS for each music file (optional, not required)
+
+
+3.2 - Future Plans
+------------------
+
+* digital playback on Sound Blaster (use samples instead of FM synthesis)
+* full screen display (not console-like) with graphical bars and blobs
+* MIDI file support
+* OPL4 support -- if anyone knows something about it, let the world know
+* Gravis Ultrasound, WaveBlaster, Aria, ESS688, ... support
+
+
+3.3 - Known Bugs
+----------------
+
+File D_INTROA.MUS from original DOOM.WAD is not played correctly (some voices
+sound too loud). I can't figure out why.
+
+The RTC-timer 32-bit protected mode driver doesn't work properly under DOS/4GW,
+while everything seems OK under PMODE/W. Strange. Needs some research.
+
+
+3.4 - Credits
+-------------
+
+Thanks to:
+  - id Software for making DOOM
+  - Creative Technology Ltd. for doing the Right Thing by making the
+    AWE32 Developer's Information Pack [adip] available for free of charge
+    for anyone (finally, after the embarrassing experience with the SB SDK)
+  - Yamaha Corporation for NOT sending me the OPL2/OPL3/OPL4 specs sheets.
+    No wonder there are almost none OPL4-based sound cards  :-(
+  - Denis M”ller, TiC (Denis.Moeller@kiel.netsurf.de) for incorporating the
+    MUSplayer into his NewWadTool (NWT) and thus making a free advertisement
+    of my work  :-)
+  - many people on The Net who have sent me new ideas or helped me morally
+
+
+3.5 - Acknowledgments
+---------------------
+
+Sound Blaster and Sound Blaster Advanced WavEffects are trademarks of
+Creative Technology Ltd.
+
+MS-DOS is a registered trademark and Windows is a trademark of Microsoft Corp.
+
+PMODE/W is Copyright (c) 1995-1996, Charles Scheffold and Thomas Pytel.
+
+All other products are trademarks or registered trademarks of their
+respective owners.
+
+
+3.6 - References and Related Products
+-------------------------------------
+
+Programming information and libraries
+-------------------------------------
+
+[sblast09]
+Title:		Sound Blaster Programming Information
+Authors:	Andr‚ Baresel (baresel@informatik.hu-berlin.de)
+		Craig Jackson (Craig.Jackson@launchpad.unc.edu)
+Filename:	sblast09.zip
+FTP:		x2ftp.oulu.fi:/pub/msdos/programming/mxinfo
+
+[gpe]
+Title:		The PC Games Programmers Encyclopedia
+Authors:	Mark Feldman (pcgpe@ix.netcom.com)
+		and many others on The Net (too many to mention)
+Filename:	pcgpe10.zip
+FTP:		x2ftp.oulu.fi:/pub/msdos/programming/gpe
+
+[adlibdoc]
+Title:		OPL2 Programming Information
+Author:		Jeffrey S. Lee (jlee@smylex.uucp)
+Filename:	adlib_sb.txt
+FTP:		x2ftp.oulu.fi:/pub/msdos/programming/mxinfo
+
+[opl3_doc]
+Title:		Programmer's Guide to Yamaha YMF 262/OPL3 FM Music Synth
+Author:		Vladimir Arnost (xarnos00@dcse.fee.vutbr.cz)
+Filename:	opl3_doc.arj
+FTP:		x2ftp.oulu.fi:/pub/msdos/programming/mxinfo
+
+[adip]
+Title:		Sound Blaster AWE32 Developer's Information Pack
+Publishers:	Creative Technology Ltd.
+Filename:	adip.zip or adip.exe (self-extract)
+FTP:		ftp.creaf.com:/pub/creative/files/awe
+
+
+Utilities
+---------
+
+[midi2mus]
+Title:          MIDI to MUS Convertor
+Author:		Digital Expressions, Inc.
+Filename:	midi2mus.exe
+FTP:		ftp.cdrom.com:/pub/idgames/utils/sound_edit
+
+[mus2midi]
+Title:          MUS to MIDI Convertor
+Author:         <IRC:#doom:just_joe> Productions (joakim.erdfelt@swsbbs.com)
+Filename:	mus2midi.zip
+FTP:		ftp.cdrom.com:/pub/idgames/utils/sound_edit
+
+[nwt]
+Title:		New Wad Tool
+Author:		Denis M”ller, TiC (Denis.Moeller@kiel.netsurf.de)
+Filename:	nwt130.zip
+FTP:		*unknown*
+
+[dmmusic]
+Title:		DOOM Music Editor - store music into or extract music from
+		DOOM WAD and PWAD files
+Author:		Bill Neisius (bill@solaria.hac.com)
+Filename:	dmmus10a.zip
+FTP:		ftp.cdrom.com:/pub/idgames/utils/sound_edit
+
+[mustool]
+Title:		MUSTOOL Utility for DOOM II
+Author:		Igor Obraztsov, the SCORPIO (iobrazts@its.brooklyn.cuny.edu)
+Filename:	mustool.zip
+FTP:		ftp.cdrom.com:/pub/idgames/utils/sound_edit
+
+
+NOTE:	Addresses and filenames presented in this document are the
+	subject of change and may be invalid by the time you read this.
+
+
+===========================================================================
+			End of MUSLib Documentation
+===========================================================================

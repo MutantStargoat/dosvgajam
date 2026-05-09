@@ -1,0 +1,6 @@
+MUSLIB 1.75, MUS File Player Library
+Public release version
+Supports Adlib, Sound Blaster Pro II/16
+(stereo), SB AWE32, MPU-401 and SB MIDI
+port. Plays music on the background.
+Full C source included (Borland & Watcom)

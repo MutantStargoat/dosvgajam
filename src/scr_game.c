@@ -235,6 +235,8 @@ static void draw_bitplane(int bpl)
 	for(i=0; i<lvl.num_layers; i++) {
 		for(j=0; j<num_vis; j++) {
 			cell = viscells[j];
+
+			/* TODO dither wall layer if tile bounds overlap player sprite */
 			draw_level_cell(&lvl, cell, i, cell->x, cell->y, bpl);
 
 			if(i == 1 && cell->cx == player_cx && cell->cy == player_cy) {
