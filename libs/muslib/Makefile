@@ -7,6 +7,8 @@ alib = ../../muslib.lib
 alib = ..\..\muslib.lib
 !endif
 
+def = -D__NO_DEFAULT_LIBS__
+
 CC = wcc386
 CFLAGS = $(cfg_dbg) $(cfg_opt) $(def) -zq -bt=dos
 

@@ -1,3 +1,6 @@
+#ifdef NO_SOUND
+/* no music, use the timer directly */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -172,3 +175,31 @@ static void INTERRUPT timer_irq()
 	/* send EOI to the PIC */
 	outp(PIC1_CMD, OCW2_EOI);
 }
+
+#else
+
+#define __NO_DEFAULT_LIBS__
+#include "muslib/muslib.h"
+
+static unsigned long start_time;
+
+void init_timer(int res_hz)
+{
+}
+
+void reset_timer(void)
+{
+	start_time = MLtime;
+}
+
+unsigned long get_msec(void)
+{
+	return (MLtime - start_time) * 1000 / 140;
+}
+
+void sleep_msec(unsigned long msec)
+{
+	/* TODO */
+}
+
+#endif	/* NO_SOUND */
