@@ -26,3 +26,6 @@ copy()
 # copy test level
 copy datasrc/testlvl/*.t?j
 copy datasrc/testlvl/tiles.png
+
+# copy music
+copy datasrc/music/*.mus

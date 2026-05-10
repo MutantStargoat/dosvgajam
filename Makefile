@@ -1,6 +1,6 @@
 !ifdef __UNIX__
 dosobj = src/dos/main.obj src/dos/vga.obj src/dos/keyb.obj src/dos/mouse.obj &
-	src/dos/timer.obj src/dos/logger.obj src/dos/vgamisc.obj
+	src/dos/timer.obj src/dos/logger.obj src/dos/vgamisc.obj src/dos/audio.obj
 appobj = src/app.obj src/options.obj src/treestor.obj src/ts_text.obj &
 	src/dynarr.obj src/util.obj src/scr_menu.obj src/scr_game.obj src/lut.obj &
 	src/xmath.obj src/xmath_s.obj src/image.obj src/tiles.obj src/level.obj &
@@ -8,10 +8,9 @@ appobj = src/app.obj src/options.obj src/treestor.obj src/ts_text.obj &
 g3dobj = src/g3d/g3d.obj src/g3d/polyfill.obj
 
 incpath = -Isrc -Isrc/dos -Ilibs -Ilibs/imago/src
-libpath = libpath libs/dos
 !else
 dosobj = src\dos\main.obj src\dos\vga.obj src\dos\keyb.obj src\dos\mouse.obj &
-	src\dos\timer.obj src\dos\logger.obj src\dos\vgamisc.obj
+	src\dos\timer.obj src\dos\logger.obj src\dos\vgamisc.obj src\dos\audio.obj
 appobj = src\app.obj src\options.obj src\treestor.obj src\ts_text.obj &
 	src\dynarr.obj src\util.obj src\scr_menu.obj src\scr_game.obj src\lut.obj &
 	src\xmath.obj src\xmath_s.obj src\image.obj src\tiles.obj src\level.obj &
@@ -19,7 +18,6 @@ appobj = src\app.obj src\options.obj src\treestor.obj src\ts_text.obj &
 g3dobj = src\g3d\g3d.obj src\g3d\polyfill.obj
 
 incpath = -Isrc -Isrc\dos -Ilibs -Ilibs\imago\src
-libpath = libpath libs\dos
 !endif
 
 obj = $(dosobj) $(appobj) $(g3dobj)
@@ -28,14 +26,14 @@ bin = game.exe
 !include watcfg.mk
 
 def = $(cfg_def)
-libs = imago.lib assfile.lib
+libs = imago.lib assfile.lib muslib.lib
 
 AS = nasm
 CC = wcc386
 LD = wlink
 ASFLAGS = -fobj
 CFLAGS = $(cfg_dbg) $(cfg_opt) $(cfg_prof) $(def) -s -zq -bt=dos $(incpath)
-LDFLAGS = option map $(libpath) library { $(libs) }
+LDFLAGS = option map library { $(libs) }
 
 $(bin): cflags.occ $(obj) $(libs)
 	%write objects.lnk $(obj)
@@ -63,18 +61,25 @@ clean: .symbolic
 
 imago.lib:
 	cd libs/imago
-	wmake -f Makefile
+	wmake
 	cd ../..
 
 assfile.lib:
 	cd libs/assfile
-	wmake -f Makefile
+	wmake
+	cd ../..
+
+muslib.lib:
+	cd libs/muslib
+	wmake
 	cd ../..
 
 cleanlibs: .symbolic
 	cd libs/imago
 	wmake clean
 	cd ../assfile
+	wmake clean
+	cd ../muslib
 	wmake clean
 	cd ../..
 
@@ -88,19 +93,25 @@ clean: .symbolic
 
 imago.lib:
 	cd libs\imago
-	wmake -f Makefile
+	wmake
 	cd ..\..
 
 assfile.lib:
 	cd libs\assfile
-	wmake -f Makefile
+	wmake
 	cd ..\..
 
+muslib.lib:
+	cd libs\muslib
+	wmake
+	cd ..\..
 
 cleanlibs: .symbolic
 	cd libs\imago
 	wmake clean
 	cd ..\assfile
+	wmake clean
+	cd ..\muslib
 	wmake clean
 	cd ..\..
 

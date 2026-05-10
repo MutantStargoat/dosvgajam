@@ -9,6 +9,12 @@
 #include "player.h"
 #include "options.h"
 
+#ifndef NO_SOUND
+#include "audio.h"
+
+static struct au_music *mus;
+#endif
+
 /* define to consider all cells visible always */
 #undef DRAW_FULL
 
@@ -105,6 +111,13 @@ static int scrgame_start(void)
 {
 	int i;
 
+#ifndef NO_SOUND
+	if(!(mus = au_load_music("data/test.mus"))) {
+		fprintf(stderr, "failed to load music\n");
+		return -1;
+	}
+#endif
+
 	vga_setpal(0, 0, 0, 0);
 	for(i=1; i<tileset.ncolors; i++) {
 		vga_setpal(-1, tileset.cmap[i].r, tileset.cmap[i].g, tileset.cmap[i].b);
@@ -134,6 +147,12 @@ static int scrgame_start(void)
 
 static void scrgame_stop(void)
 {
+#ifndef NO_SOUND
+	if(mus) {
+		au_stop_music(mus);
+		au_free_music(mus);
+	}
+#endif
 	vga_setpitch(80);
 }
 

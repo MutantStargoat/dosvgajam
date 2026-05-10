@@ -8,6 +8,10 @@
 #include "timer.h"
 #include "options.h"
 
+#ifndef NO_SOUND
+#include "audio.h"
+#endif
+
 int mouse_x, mouse_y;
 unsigned int mouse_bnstate;
 unsigned int modkeys;
@@ -46,6 +50,12 @@ int app_init(void)
 		}
 	}
 
+#ifndef NO_SOUND
+	if(au_init() == -1) {
+		return -1;
+	}
+#endif
+
 	time_msec = get_msec();
 
 	for(i=0; i<num_screens; i++) {
@@ -64,6 +74,10 @@ int app_init(void)
 void app_shutdown(void)
 {
 	int i;
+
+#ifndef NO_SOUND
+	au_shutdown();
+#endif
 
 	vga_cleanup();
 
