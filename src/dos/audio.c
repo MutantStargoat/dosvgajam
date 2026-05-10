@@ -19,7 +19,6 @@ static int volume;
 
 int au_init(void)
 {
-	unsigned int envbits;
 	unsigned short port = -1, sbport = 0x220, mpu401port = 0x330;
 	const char *bankfile = 0;
 	int fd;
@@ -36,24 +35,29 @@ int au_init(void)
 		return -1;
 	}
 
-	envbits = MLparseBlaster("A:P", &sbport, &mpu401port);
+	MLparseBlaster("A:P", &sbport, &mpu401port);
 
-	printf("Detecting audio hardware...\n");
+	printf("Detecting audio hardware... ");
+	fflush(stdout);
 	if(MLdetectHardware(DRV_OPL3, sbport, -1, -1)) {
 		driver = DRV_OPL3;
 		bankfile = "data/genmidi.op2";
 		port = sbport;
+		printf("SB/OPL3 port %x\n", port);
 
 	} else if(MLdetectHardware(DRV_OPL2, 0x388, -1, -1)) {
 		driver = DRV_OPL2;
 		bankfile = "data/genmidi.op2";
 		port = 0x388;
+		printf("Adlib/OPL2\n");
 
 	} else if(MLdetectHardware(DRV_MPU401, mpu401port, -1, -1)) {
 		driver = DRV_MPU401;
 		port = mpu401port;
+		printf("MPU401\n");
 
 	} else {
+		putchar('\n');
 		fprintf(stderr, "au_init: no audio hardware detected\n");
 		MLshutdownTimer();
 		return -1;
@@ -80,7 +84,7 @@ int au_init(void)
 		return -1;
 	}
 
-	volume = 256;
+	volume = 200;
 	return 0;
 }
 

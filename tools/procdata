@@ -29,3 +29,4 @@ copy datasrc/testlvl/tiles.png
 
 # copy music
 copy datasrc/music/*.mus
+copy datasrc/genmidi.op2

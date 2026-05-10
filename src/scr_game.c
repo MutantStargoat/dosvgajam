@@ -139,6 +139,12 @@ static int scrgame_start(void)
 
 	scrollto(lvl.startx, lvl.starty);
 
+#ifndef NO_SOUND
+	if(mus) {
+		au_play_music(mus);
+	}
+#endif
+
 	vsync = opt.vsync;
 	nframes = 0;
 	last_fps_upd = time_msec;
