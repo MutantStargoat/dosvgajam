@@ -135,7 +135,6 @@ int gridvec_to_dir8(int32_t dx, int32_t dy)
 {
 	static int diag[] = {DIR8_S, DIR8_W, DIR8_E, DIR8_N};
 	unsigned int flip = 0;
-	int32_t slope;
 
 	if(dx < 0) {
 		dx = -dx;
