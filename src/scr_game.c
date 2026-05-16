@@ -310,8 +310,8 @@ static void draw_bitplane(int bpl)
 	/*gprintf(0, 8, bpl, "vsync: %s", vsync ? "on" : "off");*/
 	gprintf(120, 0, bpl, "vis: %d", num_vis);
 	/*gprintf(120, 8, bpl, "cell: %d,%d %s", player_cx, player_cy, strcellflags(player.cell->flags));*/
-	gprintf(0, 8, bpl, "player: %s,%s\n", fixpstr(player.x, 8), fixpstr(player.y, 8));
-	gprintf(180, 8, bpl, "mouse: %s,%s\n", fixpstr(mouse_gx, 8), fixpstr(mouse_gy, 8));
+	/*gprintf(0, 8, bpl, "player: %s,%s\n", fixpstr(player.x, 8), fixpstr(player.y, 8));
+	gprintf(180, 8, bpl, "mouse: %s,%s\n", fixpstr(mouse_gx, 8), fixpstr(mouse_gy, 8));*/
 }
 
 static void scrgame_keyb(int key, int press)
@@ -348,9 +348,6 @@ static void scrgame_mouse(int bn, int press, int x, int y)
 		gx -= 128;
 		gy -= 128;
 		mob_lookat(&player, gx, gy);
-
-		printf("mouse %d,%d -> c(%d,%d) g(%s,%s)\t(scroll: %d,%d)\n", x, y, cx, cy,
-				fixpstr(gx, 8), fixpstr(gy, 8), xscroll, yscroll);
 	}
 }
 

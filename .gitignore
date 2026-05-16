@@ -35,3 +35,4 @@ core.*
 core
 .cache/
 *.json
+*.ppm

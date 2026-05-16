@@ -1,0 +1,6 @@
+*.o
+*.d
+*.swp
+imgquant
+*.png
+*.slut
