@@ -46,11 +46,13 @@ int gridvec_to_dir8(int32_t dx, int32_t dy)
 		flip |= 2;
 	}
 
-	if((dy << 7) < dx * 53) {
+	//if((dy << 7) < dx * 53) {
+	if((dy << 7) < (dx << 6) - (dx << 3) - (dx << 1)) {
 		/* slope less than 0.4142 -> 22.5 deg */
 		return flip & 1 ? DIR8_NW : DIR8_SE;
 	}
-	if((dx << 7) < dy * 53) {
+	//if((dx << 7) < dy * 53) {
+	if((dx << 7) < (dy << 6) - (dy << 3) - (dx << 1)) {
 		/* slope above 2.4142 -> between 67.5 and 90 deg */
 		return flip & 2 ? DIR8_NE : DIR8_SW;
 	}
