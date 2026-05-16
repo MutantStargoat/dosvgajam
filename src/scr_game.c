@@ -59,25 +59,28 @@ static void gprintf(int x, int y, int bpl, const char *fmt, ...);
 
 static int scrgame_init(void)
 {
-	int i, j, x, y;
+	int i, j, x, y, dir;
+	static int spr_row_dir[] = {
+		DIR8_W, DIR8_E, DIR8_S, DIR8_N, DIR8_NW, DIR8_NE, DIR8_SW, DIR8_SE
+	};
 
-	if(load_level(&lvl, "data/testlvl.tmj") == -1) {
+	if(load_level(&lvl, "data/levels/testlvl.tmj") == -1) {
 		return -1;
 	}
 
 	/* define a cell selection tile */
-	seltile = tiles_define(&tileset, 64, 480, CELL_XSZ, CELL_YSZ);
+	seltile = tiles_define(&tileset, 384, 160, CELL_XSZ, CELL_YSZ);
 	seltile->xorg = CELL_XSZ / 2;
 	seltile->yorg = CELL_YSZ / 2;
 
 	/* define the mouse cursor sprite */
-	cursors[0] = tiles_define(&tileset, 128, 480, 10, 16);
+	cursors[0] = tiles_define(&tileset, 448, 160, 10, 16);
 	/* another mouse cursor sprite */
-	cursors[1] = tiles_define(&tileset, 128, 496, 16, 16);
+	cursors[1] = tiles_define(&tileset, 448, 176, 16, 16);
 	cursors[1]->xorg = cursors[1]->yorg = 7;
 
 	x = 256;
-	y = 488;
+	y = 200;
 	for(i=0; i<sizeof font / sizeof *font; i++) {
 		font[i] = tiles_define(&tileset, x, y, 8, 8);
 		x += 8;
@@ -88,14 +91,18 @@ static int scrgame_init(void)
 	}
 
 	for(i=0; i<8; i++) {
-		hero[i] = tiles_define(&tileset, i * 32, 256, 32, 32);
-		hero[i]->xorg = 16;
-		hero[i]->yorg = 24;
+		y = 256 + i * 32;
+		dir = spr_row_dir[i];
+
+		hero[dir] = tiles_define(&tileset, 0, y, 32, 32);
+		hero[dir]->xorg = 16;
+		hero[dir]->yorg = 28;
 
 		for(j=0; j<NUM_WALK_FRAMES; j++) {
-			walk[i][j] = tiles_define(&tileset, i * 32, 288 + j * 32, 32, 32);
-			walk[i][j]->xorg = 16;
-			walk[i][j]->yorg = 24;
+			x = 32 + j * 32;
+			walk[dir][j] = tiles_define(&tileset, x, y, 32, 32);
+			walk[dir][j]->xorg = 16;
+			walk[dir][j]->yorg = 28;
 		}
 	}
 
@@ -112,7 +119,7 @@ static int scrgame_start(void)
 	int i;
 
 #ifndef NO_SOUND
-	if(!(mus = au_load_music("data/test.mus"))) {
+	if(!(mus = au_load_music("data/music/test.mus"))) {
 		fprintf(stderr, "failed to load music\n");
 		return -1;
 	}
@@ -127,7 +134,7 @@ static int scrgame_start(void)
 	vga_setpitch(VGA_PITCH);
 
 	xscroll = yscroll = 0;
-	mouse_mode = 0;
+	mouse_mode = 1;
 	num_vis = 0;
 
 	player.x = lvl.startx;
@@ -250,7 +257,7 @@ static void scrgame_display(void)
 
 static void draw_bitplane(int bpl)
 {
-	int i, j, x, y, mouse_cx, mouse_cy, player_cx, player_cy;
+	int i, j, x, y, mouse_cx, mouse_cy, mouse_gx, mouse_gy, player_cx, player_cy;
 	struct level_cell *cell;
 	struct tileimg *spr;
 
@@ -293,13 +300,18 @@ static void draw_bitplane(int bpl)
 		tiles_blit_rle(seltile, x, y, bpl);
 	}
 	*/
+	vscr_to_grid(mouse_x + xscroll, mouse_y + yscroll, &mouse_gx, &mouse_gy);
+	mouse_gx -= 128;
+	mouse_gy -= 128;
 
 	tiles_blit_rle(cursors[mouse_mode], mouse_x, mouse_y, bpl);
 
 	gprintf(0, 0, bpl, fps_text);
-	gprintf(0, 8, bpl, "vsync: %s", vsync ? "on" : "off");
+	/*gprintf(0, 8, bpl, "vsync: %s", vsync ? "on" : "off");*/
 	gprintf(120, 0, bpl, "vis: %d", num_vis);
-	gprintf(120, 8, bpl, "cell: %d,%d %s", player_cx, player_cy, strcellflags(player.cell->flags));
+	/*gprintf(120, 8, bpl, "cell: %d,%d %s", player_cx, player_cy, strcellflags(player.cell->flags));*/
+	gprintf(0, 8, bpl, "player: %s,%s\n", fixpstr(player.x, 8), fixpstr(player.y, 8));
+	gprintf(180, 8, bpl, "mouse: %s,%s\n", fixpstr(mouse_gx, 8), fixpstr(mouse_gy, 8));
 }
 
 static void scrgame_keyb(int key, int press)
@@ -322,7 +334,7 @@ static void scrgame_keyb(int key, int press)
 
 static void scrgame_mouse(int bn, int press, int x, int y)
 {
-	int cx, cy;
+	int cx, cy, gx, gy;
 
 	prev_mx = x;
 	prev_my = y;
@@ -331,19 +343,32 @@ static void scrgame_mouse(int bn, int press, int x, int y)
 
 	if(bn == 0) {
 		vscr_to_cell(mouse_x + xscroll, mouse_y + yscroll, &cx, &cy);
-		printf("mouse %d,%d -> cell %d,%d    (scroll: %d,%d)\n", x, y, cx, cy,
-				xscroll, yscroll);
+
+		vscr_to_grid(mouse_x + xscroll, mouse_y + yscroll, &gx, &gy);
+		gx -= 128;
+		gy -= 128;
+		mob_lookat(&player, gx, gy);
+
+		printf("mouse %d,%d -> c(%d,%d) g(%s,%s)\t(scroll: %d,%d)\n", x, y, cx, cy,
+				fixpstr(gx, 8), fixpstr(gy, 8), xscroll, yscroll);
 	}
 }
 
 static void scrgame_motion(int x, int y)
 {
-	int dx, dy;
+	int dx, dy, gx, gy;
 
 	dx = mouse_x - prev_mx;
 	dy = mouse_y - prev_my;
 	prev_mx = mouse_x;
 	prev_my = mouse_y;
+
+	if(mouse_bnstate & 1) {
+		vscr_to_grid(x + xscroll, y + yscroll, &gx, &gy);
+		gx -= 128;
+		gy -= 128;
+		mob_lookat(&player, gx, gy);
+	}
 
 	if(mouse_bnstate & 4) {
 		xscroll -= dx;

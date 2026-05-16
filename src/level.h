@@ -73,7 +73,8 @@ void calc_cell_height(struct level *lvl, struct level_cell *cell);
 
 const char *strcellflags(unsigned int flags);
 
-int vec_to_dir8(int dx, int dy);
+int scrvec_to_dir8(int dx, int dy);
+int gridvec_to_dir8(int32_t dx, int32_t dy);
 
 /* implicit in these conversions is the tile size: 64x32 */
 static INLINE void vscr_to_grid(int sx, int sy, int32_t *gridx, int32_t *gridy)

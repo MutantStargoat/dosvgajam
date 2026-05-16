@@ -120,7 +120,7 @@ const char *strcellflags(unsigned int flags)
 	return str;
 }
 
-int vec_to_dir8(int dx, int dy)
+int scrvec_to_dir8(int dx, int dy)
 {
 	unsigned int mask;
 	static const int dirlut[] = {-1, DIR8_E, DIR8_W, -1, DIR8_S, DIR8_SE,
@@ -129,4 +129,36 @@ int vec_to_dir8(int dx, int dy)
 	/* bits NSWE */
 	mask = ((dy >> 28) & 8) | ((dx >> 30) & 2) | ((dy > 0) << 2) | (dx > 0);
 	return dirlut[mask];
+}
+
+int gridvec_to_dir8(int32_t dx, int32_t dy)
+{
+	unsigned int flip = 0;
+	int32_t slope;
+
+	if(dx < 0) {
+		dx = -dx;
+		flip = 1;
+	}
+	if(dy < 0) {
+		dy = -dy;
+		flip |= 2;
+	}
+
+	if(!dx) goto vert;
+	slope = (dy << 8) / dx;
+
+	if(slope < 106) {
+		/* slope less than 0.4142 -> 22.5 deg */
+		return flip & 1 ? DIR8_NW : DIR8_SE;
+	}
+	if(slope < 618) {
+		/* slope between 0.4142 and 2.4142 -> between 22.5 and 67.5 deg */
+		static int diag[] = {DIR8_S, DIR8_W, DIR8_E, DIR8_N};
+		return diag[flip];
+	}
+
+vert:
+	/* slope above 2.4142 -> between 67.5 and 90 deg */
+	return flip & 2 ? DIR8_NE : DIR8_SW;
 }

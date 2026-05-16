@@ -41,13 +41,13 @@ int au_init(void)
 	fflush(stdout);
 	if(MLdetectHardware(DRV_OPL3, sbport, -1, -1)) {
 		driver = DRV_OPL3;
-		bankfile = "data/genmidi.op2";
+		bankfile = "data/music/genmidi.op2";
 		port = sbport;
 		printf("SB/OPL3 port %x\n", port);
 
 	} else if(MLdetectHardware(DRV_OPL2, 0x388, -1, -1)) {
 		driver = DRV_OPL2;
-		bankfile = "data/genmidi.op2";
+		bankfile = "data/music/genmidi.op2";
 		port = 0x388;
 		printf("Adlib/OPL2\n");
 
@@ -84,7 +84,7 @@ int au_init(void)
 		return -1;
 	}
 
-	volume = 200;
+	volume = 256;
 	return 0;
 }
 

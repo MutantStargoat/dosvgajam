@@ -39,8 +39,15 @@ int mob_move(struct mob *mob, int dx, int dy)
 
 	mob->x = nx;
 	mob->y = ny;
-	mob->dir = vec_to_dir8(dx, dy);
+	mob->dir = scrvec_to_dir8(dx, dy);
 	mob->state = MOB_WALK;
 	mob->anmfrm++;
 	return 1;
+}
+
+void mob_lookat(struct mob *mob, int32_t x, int32_t y)
+{
+	int dx = x - mob->x;
+	int dy = y - mob->y;
+	mob->dir = gridvec_to_dir8(dx, dy);
 }

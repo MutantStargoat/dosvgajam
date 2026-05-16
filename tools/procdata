@@ -14,19 +14,47 @@ mkdir -p data
 
 copy()
 {
-	for i in $*; do
-		dest=data/`basename $i`
-		if $force || [ ! -e $dest -o $i -nt $dest ]; then
-			echo "copy $i -> $dest"
-			cp $i $dest
+	src=$1
+	destdir=$2
+	dest=$destdir/`basename $src`
+	if $force || [ ! -e $dest -o $src -nt $dest ]; then
+		echo "copy $src -> $dest"
+		mkdir -p $destdir
+		cp $src $dest
+	fi
+}
+
+build_imgquant()
+{
+	if [ ! -f tools/imgquant/imgquant ]; then
+		cd tools/imgquant
+		if ! make; then
+			echo 'failed to build imgquant, aborting!' >&2
+			exit 1
 		fi
-	done
+	fi
+}
+
+quantize()
+{
+	src=$1
+	destdir=$2
+	dest=$destdir/`basename $src`
+	if $force || [ ! -e $dest -o $src -nt $dest ]; then
+		# build imgquant if it's missing
+		build_imgquant
+		echo "quantize $src -> $dest"
+		mkdir -p $destdir
+		tools/imgquant/imgquant -o $dest -C 254 -P $src -movekey 0
+	fi
 }
 
 # copy test level
-copy datasrc/testlvl/*.t?j
-copy datasrc/testlvl/tiles.png
+for i in datasrc/testlvl/*.t?j; do
+	copy $i data/levels
+done
+copy datasrc/testlvl/tiles.png data
 
 # copy music
-copy datasrc/music/*.mus
-copy datasrc/genmidi.op2
+copy datasrc/music/test.mus data/music
+copy datasrc/genmidi.op2 data/music
