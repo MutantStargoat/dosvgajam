@@ -32,11 +32,15 @@ enum {
 	CELL_EXITS	= CELL_EXIT_N | CELL_EXIT_W | CELL_EXIT_S | CELL_EXIT_E
 };
 
+struct mob;
+
 struct level_cell {
 	int cx, cy;				/* cell coordinates */
 	int x, y;				/* place for computed pixel coordinates */
 	int height;				/* maximum height of tiles/sprites in cell, for vis */
 	unsigned int flags;
+
+	struct mob *mobs;		/* linked list */
 
 	struct level_cell *dirty_next;
 };
@@ -52,6 +56,8 @@ struct level {
 	struct level_cell *cells;
 
 	int startx, starty;		/* start cell where player initially spawns */
+
+	struct mob **mobs;		/* dynarr */
 };
 
 extern struct tileset tileset;

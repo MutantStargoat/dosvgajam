@@ -6,6 +6,7 @@
 #include "tiles.h"
 #include "json.h"
 #include "dynarr.h"
+#include "player.h"
 
 struct tileprop {
 	int id;
@@ -184,6 +185,7 @@ int load_level(struct level *lvl, const char *fname)
 			if(get_cell_tile(lvl, cell, 0, 0)) {
 				cell->flags |= CELL_WALK;
 			}
+			cell->mobs = 0;
 
 			calc_cell_height(lvl, cell);
 
@@ -389,9 +391,10 @@ static struct tileimg *get_global_tile(int id)
 
 static int load_gameobj(struct level *lvl, struct json_obj *jobj)
 {
-	int i, x, y, gridx, gridy;
+	int i, x, y, gridx, gridy, cx, cy;
 	struct json_arr *jarr;
 	const char *name, *type;
+	struct mob *mob;
 
 	if(!(jarr = json_lookup_arr(jobj, "objects", 0))) {
 		return -1;
@@ -404,17 +407,17 @@ static int load_gameobj(struct level *lvl, struct json_obj *jobj)
 		name = json_lookup_str(jobj, "name", 0);
 		type = json_lookup_str(jobj, "type", 0);
 
+		/* load spawn points */
+		x = json_lookup_int(jobj, "x", -1);
+		y = json_lookup_int(jobj, "y", -1);
+
+		/* coordinates are in vertical tile pixel units, convert to 24.8
+		 * grid units
+		 */
+		gridx = x >= 0 ? ((x - TILE_YSZ) << 7) / TILE_YSZ : -0x100;
+		gridy = y >= 0 ? ((y - TILE_YSZ) << 7) / TILE_YSZ : -0x100;
+
 		if(strcmp(type, "spawn") == 0) {
-			/* load spawn points */
-			x = json_lookup_int(jobj, "x", -1);
-			y = json_lookup_int(jobj, "y", -1);
-
-			/* coordinates are in vertical tile pixel units, convert to 24.8
-			 * grid units
-			 */
-			gridx = ((x - TILE_YSZ) << 7) / TILE_YSZ;
-			gridy = ((y - TILE_YSZ) << 7) / TILE_YSZ;
-
 			if(!BOUNDCHK(gridx, lvl->size << 8) || !BOUNDCHK(gridy, lvl->size << 8)) {
 				fprintf(stderr, "ignoring invalid spawn point: %s\n", name);
 				continue;
@@ -425,8 +428,29 @@ static int load_gameobj(struct level *lvl, struct json_obj *jobj)
 				lvl->starty = gridy;
 				printf("player spawn: %s, %s\n", fixpstr(lvl->startx, 8),
 						fixpstr(lvl->starty, 8));
+
+			} else if(strcmp(name, "guard") == 0) {
+				mob = create_mob();
+				mob->lvl = lvl;
+				mob->x = gridx;
+				mob->y = gridy;
+				grid_to_cell(gridx, gridy, &cx, &cy);
+				mob->cell = get_level_cell(lvl, cx, cy);
+				mob->next = mob->cell->mobs;
+				mob->cell->mobs = mob;
+
+				dynarr_push_nf(lvl->mobs, &mob);
+				printf("%s spawn: %s, %s\n", name, fixpstr(mob->x, 8),
+						fixpstr(mob->y, 8));
+
 			} else {
 				fprintf(stderr, "ignoring unknown spawn point: %s\n", name);
+				continue;
+			}
+
+		} else if(strcmp(type, "portal") == 0) {
+			if(!BOUNDCHK(gridx, lvl->size << 8) || !BOUNDCHK(gridy, lvl->size << 8)) {
+				fprintf(stderr, "ignoring invalid portal position: %s\n", name);
 				continue;
 			}
 		}

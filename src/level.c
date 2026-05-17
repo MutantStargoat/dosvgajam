@@ -3,6 +3,8 @@
 #include "level.h"
 #include "tiles.h"
 #include "util.h"
+#include "dynarr.h"
+#include "player.h"
 
 struct tileset tileset;
 
@@ -35,6 +37,8 @@ int create_level(struct level *lvl, int sz, int nlayers)
 			return -1;
 		}
 	}
+
+	lvl->mobs = dynarr_alloc_nf(0, sizeof *lvl->mobs);
 	return 0;
 }
 
@@ -48,6 +52,11 @@ void destroy_level(struct level *lvl)
 	for(i=0; i<lvl->num_layers; i++) {
 		free(lvl->tmap[i]);
 	}
+
+	for(i=0; i<dynarr_size(lvl->mobs); i++) {
+		free_mob(lvl->mobs[i]);
+	}
+	dynarr_free(lvl->mobs);
 }
 
 /* NOTE load_level is defined in tiledfmt.c */

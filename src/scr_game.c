@@ -43,6 +43,8 @@ static struct tileimg *walk[8][NUM_WALK_FRAMES];
 
 static struct mob player;
 
+struct tileimg *mob_idle[8], *mob_fire[8];
+
 
 #ifdef DRAW_FULL
 #define MAX_VIS_CELLS	8192
@@ -104,6 +106,19 @@ static int scrgame_init(void)
 			walk[dir][j]->xorg = 16;
 			walk[dir][j]->yorg = 28;
 		}
+	}
+
+	for(i=0; i<8; i++) {
+		y = 256 + i * 32;
+		dir = spr_row_dir[i];
+
+		mob_idle[dir] = tiles_define(&tileset, 448, y, 32, 32);
+		mob_idle[dir]->xorg = 16;
+		mob_idle[dir]->yorg = 28;
+
+		mob_fire[dir] = tiles_define(&tileset, 448+32, y, 32, 32);
+		mob_fire[dir]->xorg = 16;
+		mob_fire[dir]->yorg = 28;
 	}
 
 	return 0;
@@ -236,7 +251,7 @@ static void scrgame_display(void)
 	nframes++;
 	if((elapsed = time_msec - last_fps_upd) >= 1500) {
 		fps = 10000 * nframes / elapsed;
-		sprintf(fps_text, "fps: %ld.%ld", fps / 10, fps % 10);
+		sprintf(fps_text, "fps:%ld.%ld", fps / 10, fps % 10);
 		last_fps_upd = time_msec;
 		nframes = 0;
 	}
@@ -271,22 +286,43 @@ static void draw_bitplane(int bpl)
 			/* TODO dither wall layer if tile bounds overlap player sprite */
 			draw_level_cell(&lvl, cell, i, cell->x, cell->y, bpl);
 
-			if(i == 1 && cell->cx == player_cx && cell->cy == player_cy) {
-				grid_to_vscr(player.x, player.y, &x, &y);
-				tiles_blit_rle(seltile, cell->x, cell->y, bpl);
+			/* draw mobs */
+			if(i == 1) {
+				struct mob *mob = cell->mobs;
+				while(mob) {
+					grid_to_vscr(mob->x, mob->y, &x, &y);
+					switch(mob->state) {
+					case MOB_IDLE:
+						spr = mob_idle[mob->dir];
+						break;
+					case MOB_FIRE:
+						spr = mob_fire[mob->dir];
+						break;
+					default:
+						spr = 0;
+					}
 
-				switch(player.state) {
-				case MOB_WALK:
-					spr = walk[player.dir][(player.anmfrm >> 2) % NUM_WALK_FRAMES];
-					break;
-
-				case MOB_IDLE:
-				default:
-					spr = hero[player.dir];
+					if(spr) tiles_blit_rle(spr, x - xscroll, y - yscroll, bpl);
+					mob = mob->next;
 				}
 
-				tiles_blit_rle(spr, x - xscroll, y - yscroll, bpl);
-				/*tiles_blit_rle(cursors[1], x - xscroll, y - yscroll, bpl);*/
+				if(cell->cx == player_cx && cell->cy == player_cy) {
+					grid_to_vscr(player.x, player.y, &x, &y);
+					tiles_blit_rle(seltile, cell->x, cell->y, bpl);
+
+					switch(player.state) {
+					case MOB_WALK:
+						spr = walk[player.dir][(player.anmfrm >> 2) % NUM_WALK_FRAMES];
+						break;
+
+					case MOB_IDLE:
+					default:
+						spr = hero[player.dir];
+					}
+
+					tiles_blit_rle(spr, x - xscroll, y - yscroll, bpl);
+					/*tiles_blit_rle(cursors[1], x - xscroll, y - yscroll, bpl);*/
+				}
 			}
 		}
 	}
@@ -308,8 +344,8 @@ static void draw_bitplane(int bpl)
 
 	gprintf(0, 0, bpl, fps_text);
 	/*gprintf(0, 8, bpl, "vsync: %s", vsync ? "on" : "off");*/
-	gprintf(120, 0, bpl, "vis: %d", num_vis);
-	/*gprintf(120, 8, bpl, "cell: %d,%d %s", player_cx, player_cy, strcellflags(player.cell->flags));*/
+	gprintf(90, 0, bpl, "vis:%d", num_vis);
+	gprintf(160, 0, bpl, "cell:%d,%d %s", player_cx, player_cy, strcellflags(player.cell->flags));
 	/*gprintf(0, 8, bpl, "player: %s,%s\n", fixpstr(player.x, 8), fixpstr(player.y, 8));
 	gprintf(180, 8, bpl, "mouse: %s,%s\n", fixpstr(mouse_gx, 8), fixpstr(mouse_gy, 8));*/
 }

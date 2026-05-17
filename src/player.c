@@ -1,7 +1,24 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "player.h"
 #include "level.h"
 #include "util.h"
+
+struct mob *create_mob(void)
+{
+	struct mob *mob;
+
+	mob = calloc_nf(1, sizeof *mob);
+	mob->dir = rand() & 7;
+	mob->state = MOB_IDLE;
+	mob->hp = 100;
+	return mob;
+}
+
+void free_mob(struct mob *mob)
+{
+	free(mob);
+}
 
 int mob_move(struct mob *mob, int dx, int dy)
 {
