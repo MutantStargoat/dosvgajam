@@ -57,8 +57,14 @@ int mob_move(struct mob *mob, int dx, int dy)
 	mob->x = nx;
 	mob->y = ny;
 	mob->dir = scrvec_to_dir8(dx, dy);
-	mob->state = MOB_WALK;
-	mob->anmfrm++;
+
+	if(mob->state != MOB_WALK) {
+		mob_state(mob, MOB_WALK);
+	} else {
+		if(++mob->spr.frm >= mob->spr.nfrm * 2) {		// XXX remove the *2
+			mob->spr.frm = 0;
+		}
+	}
 	return 1;
 }
 
@@ -67,4 +73,12 @@ void mob_lookat(struct mob *mob, int32_t x, int32_t y)
 	int dx = x - mob->x;
 	int dy = y - mob->y;
 	mob->dir = gridvec_to_dir8(dx, dy);
+}
+
+void mob_state(struct mob *mob, int st)
+{
+	mob->state = st;
+	mob->spr.cur = mob->spr.anim + st;
+	mob->spr.frm = 0;
+	mob->spr.nfrm = mob->spr.cur->seq[mob->dir]->ntiles;
 }

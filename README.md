@@ -22,6 +22,11 @@ Notes
 The isometric coordinate system has its origin at the top corner. X axis
 increases down and to the right, Y axis down and to the left.
 
+Sprites contain an array with pointers to tileseqs (animations if `tseq->ntiles`
+is `> 1`. We load tileseqs globally for the level/scr_game session, and the
+sprites share them. Animation current frame and timing is on the sprite, reset
+when starting a new animation.
+
 Calling conventions cheatsheet
 ------------------------------
 ### DJGPP

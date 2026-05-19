@@ -38,8 +38,7 @@ static long last_fps_upd, nframes;
 static struct tileimg *font[96];
 static int text_color = 0xff;
 
-static struct tileimg *hero[8];
-static struct tileimg *walk[8][NUM_WALK_FRAMES];
+#define NUM_WALK_FRAMES	8
 
 static struct mob player;
 
@@ -92,21 +91,10 @@ static int scrgame_init(void)
 		}
 	}
 
-	for(i=0; i<8; i++) {
-		y = 256 + i * 32;
-		dir = spr_row_dir[i];
+	define_spranim(&tileset, player.spr.anim + MOB_WALK, 8, 32, 256, 32, 32);
+	spr_origin(&player.spr, 16, 28);
 
-		hero[dir] = tiles_define(&tileset, 0, y, 32, 32);
-		hero[dir]->xorg = 16;
-		hero[dir]->yorg = 28;
-
-		for(j=0; j<NUM_WALK_FRAMES; j++) {
-			x = 32 + j * 32;
-			walk[dir][j] = tiles_define(&tileset, x, y, 32, 32);
-			walk[dir][j]->xorg = 16;
-			walk[dir][j]->yorg = 28;
-		}
-	}
+	define_spranim(&tileset, player.spr.anim + MOB_IDLE, 1, 0, 256, 32, 32);
 
 	for(i=0; i<8; i++) {
 		y = 256 + i * 32;
@@ -274,7 +262,8 @@ static void draw_bitplane(int bpl)
 {
 	int i, j, x, y, mouse_cx, mouse_cy, mouse_gx, mouse_gy, player_cx, player_cy;
 	struct level_cell *cell;
-	struct tileimg *spr;
+	struct tileimg *tile;
+	struct tileseq *seq;
 
 	player_cx = player.cell->cx;
 	player_cy = player.cell->cy;
@@ -293,16 +282,16 @@ static void draw_bitplane(int bpl)
 					grid_to_vscr(mob->x, mob->y, &x, &y);
 					switch(mob->state) {
 					case MOB_IDLE:
-						spr = mob_idle[mob->dir];
+						tile = mob_idle[mob->dir];
 						break;
 					case MOB_FIRE:
-						spr = mob_fire[mob->dir];
+						tile = mob_fire[mob->dir];
 						break;
 					default:
-						spr = 0;
+						tile = 0;
 					}
 
-					if(spr) tiles_blit_rle(spr, x - xscroll, y - yscroll, bpl);
+					if(tile) tiles_blit_rle(tile, x - xscroll, y - yscroll, bpl);
 					mob = mob->next;
 				}
 
@@ -310,17 +299,10 @@ static void draw_bitplane(int bpl)
 					grid_to_vscr(player.x, player.y, &x, &y);
 					tiles_blit_rle(seltile, cell->x, cell->y, bpl);
 
-					switch(player.state) {
-					case MOB_WALK:
-						spr = walk[player.dir][(player.anmfrm >> 2) % NUM_WALK_FRAMES];
-						break;
+					seq = player.spr.anim[MOB_WALK].seq[player.dir];
+					tile = seq->tile[player.spr.frm >> 1];		/* XXX remove the >> 1 */
 
-					case MOB_IDLE:
-					default:
-						spr = hero[player.dir];
-					}
-
-					tiles_blit_rle(spr, x - xscroll, y - yscroll, bpl);
+					tiles_blit_rle(tile, x - xscroll, y - yscroll, bpl);
 					/*tiles_blit_rle(cursors[1], x - xscroll, y - yscroll, bpl);*/
 				}
 			}

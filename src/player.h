@@ -2,18 +2,20 @@
 #define PLAYER_H_
 
 #include "level.h"
+#include "sprite.h"
 
 enum {
 	MOB_IDLE,
 	MOB_WALK,
-	MOB_FIRE
-};
+	MOB_FIRE,
 
-#define NUM_WALK_FRAMES	8
+	NUM_MOB_STATES
+};
 
 struct mob {
 	int32_t x, y;
-	int state, dir, anmfrm;
+	int state, dir;
+	struct sprite spr;
 	int hp;
 	struct level *lvl;
 	struct level_cell *cell;
@@ -28,5 +30,7 @@ void free_mob(struct mob *mob);
 int mob_move(struct mob *mob, int dx, int dy);
 
 void mob_lookat(struct mob *mob, int32_t x, int32_t y);
+
+void mob_state(struct mob *mob, int st);
 
 #endif	/* PLAYER_H_ */

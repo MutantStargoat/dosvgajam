@@ -124,8 +124,18 @@ int dump_tile(struct tileimg *tile, const char *fname)
 
 struct tileimg *tiles_define(struct tileset *ts, int x, int y, int w, int h)
 {
-	struct tileimg *tile = calloc_nf(1, sizeof *tile);
+	int i;
+	struct tileimg *tile;
 
+	for(i=0; i<dynarr_size(ts->tiles); i++) {
+		tile = ts->tiles[i];
+		if(tile->x == x && tile->y == y) {
+			return tile;
+		}
+		tile++;
+	}
+
+	tile = calloc_nf(1, sizeof *tile);
 	dynarr_push_nf(ts->tiles, &tile);
 
 	tile->sheet = ts;
@@ -445,5 +455,48 @@ static void conv_rle(struct tileimg *tile, int bpl)
 		tile->rle = rlebuf;
 	} else {
 		tile->prle[bpl] = rlebuf;
+	}
+}
+
+/* --- tile sequences --- */
+
+struct tileseq *tileseq_define(struct tileset *ts, int n, int x, int y, int w, int h,
+		int dx, int dy)
+{
+	int i;
+	struct tileseq *tseq;
+
+	if(!(tseq = malloc(sizeof *tseq + n * sizeof *tseq->tile))) {
+		return 0;
+	}
+	tseq->tile = (struct tileimg**)(tseq + 1);
+	tseq->ntiles = n;
+	tseq->interv = 100;
+
+	for(i=0; i<n; i++) {
+		if(!(tseq->tile[i] = tiles_define(ts, x, y, w, h))) {
+			fprintf(stderr, "tileseq_define: failed at %d,%d\n", x, y);
+			return 0;
+		}
+		x += dx;
+		y += dy;
+	}
+	return tseq;
+}
+
+void free_tileseq(struct tileseq *tseq)
+{
+	if(tseq) {
+		free(tseq);
+	}
+}
+
+void tileseq_origin(struct tileseq *tseq, int x, int y)
+{
+	int i;
+
+	for(i=0; i<tseq->ntiles; i++) {
+		tseq->tile[i]->xorg = x;
+		tseq->tile[i]->yorg = y;
 	}
 }

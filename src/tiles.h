@@ -29,6 +29,12 @@ struct tileimg {
 	unsigned char *rle, *prle[4];
 };
 
+struct tileseq {
+	int interv;			/* animation interval in milliseconds */
+	int ntiles;
+	struct tileimg **tile;
+};
+
 int tiles_load(struct tileset *ts, const char *fname);
 void tiles_destroy(struct tileset *ts);
 
@@ -39,5 +45,12 @@ struct tileimg *tiles_define(struct tileset *ts, int x, int y, int w, int h);
 void tiles_blit_key(struct tileimg *tile, int x, int y, int bpl);
 void tiles_blit_rle(struct tileimg *tile, int x, int y, int bpl);
 void tiles_fill_rle(struct tileimg *tile, int x, int y, int cidx, int bpl);
+
+/* tile sequences */
+struct tileseq *tileseq_define(struct tileset *ts, int n, int x, int y, int w, int h,
+		int dx, int dy);
+void free_tileseq(struct tileseq *tseq);
+
+void tileseq_origin(struct tileseq *seq, int x, int y);
 
 #endif	/* TILESHEET_H_ */
