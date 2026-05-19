@@ -15,7 +15,7 @@ Datafiles
 ---------
 The game datafiles will be in their own subversion repo. Checkout with:
 
-    svn co svn://mutantstargoat.com/datadirs/vgajam data
+    svn co svn://mutantstargoat.com/datadirs/dosvgajam datasrc
 
 Notes
 -----
