@@ -91,10 +91,9 @@ static int scrgame_init(void)
 		}
 	}
 
+	define_spranim(&tileset, player.spr.anim + MOB_IDLE, 1, 0, 256, 32, 32);
 	define_spranim(&tileset, player.spr.anim + MOB_WALK, 8, 32, 256, 32, 32);
 	spr_origin(&player.spr, 16, 28);
-
-	define_spranim(&tileset, player.spr.anim + MOB_IDLE, 1, 0, 256, 32, 32);
 
 	for(i=0; i<8; i++) {
 		y = 256 + i * 32;
@@ -146,6 +145,7 @@ static int scrgame_start(void)
 	player.lvl = &lvl;
 	player.cell = get_level_cell(&lvl, lvl.startx >> 8, lvl.starty >> 8);
 	player.hp = 256;
+	mob_state(&player, MOB_IDLE);
 
 	scrollto(lvl.startx, lvl.starty);
 
@@ -299,8 +299,8 @@ static void draw_bitplane(int bpl)
 					grid_to_vscr(player.x, player.y, &x, &y);
 					tiles_blit_rle(seltile, cell->x, cell->y, bpl);
 
-					seq = player.spr.anim[MOB_WALK].seq[player.dir];
-					tile = seq->tile[player.spr.frm >> 1];		/* XXX remove the >> 1 */
+					seq = player.spr.anim[player.state].seq[player.dir];
+					tile = seq->tile[(player.spr.frm >> 1) % player.spr.nfrm];		/* XXX remove the >> 1 */
 
 					tiles_blit_rle(tile, x - xscroll, y - yscroll, bpl);
 					/*tiles_blit_rle(cursors[1], x - xscroll, y - yscroll, bpl);*/

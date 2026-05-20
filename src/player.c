@@ -61,9 +61,7 @@ int mob_move(struct mob *mob, int dx, int dy)
 	if(mob->state != MOB_WALK) {
 		mob_state(mob, MOB_WALK);
 	} else {
-		if(++mob->spr.frm >= mob->spr.nfrm * 2) {		// XXX remove the *2
-			mob->spr.frm = 0;
-		}
+		mob->spr.frm++;
 	}
 	return 1;
 }
