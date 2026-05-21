@@ -26,7 +26,7 @@ int mob_move(struct mob *mob, int dx, int dy)
 	int32_t nx, ny;
 
 	if(!(dx | dy)) {
-		mob->state = MOB_IDLE;
+		mob_state(mob, MOB_IDLE);
 		return 0;
 	}
 
