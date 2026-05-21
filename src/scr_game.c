@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <stdarg.h>
 #include "app.h"
 #include "vga.h"
@@ -8,6 +9,7 @@
 #include "rend.h"
 #include "player.h"
 #include "options.h"
+#include "dynarr.h"
 
 #ifndef NO_SOUND
 #include "audio.h"
@@ -38,11 +40,7 @@ static long last_fps_upd, nframes;
 static struct tileimg *font[96];
 static int text_color = 0xff;
 
-#define NUM_WALK_FRAMES	8
-
 static struct mob player;
-
-struct tileimg *mob_idle[8], *mob_fire[8];
 
 
 #ifdef DRAW_FULL
@@ -60,10 +58,8 @@ static void gprintf(int x, int y, int bpl, const char *fmt, ...);
 
 static int scrgame_init(void)
 {
-	int i, j, x, y, dir;
-	static int spr_row_dir[] = {
-		DIR8_W, DIR8_E, DIR8_S, DIR8_N, DIR8_NW, DIR8_NE, DIR8_SW, DIR8_SE
-	};
+	int i, x, y;
+	struct sprite sprmob;
 
 	if(load_level(&lvl, "data/levels/testlvl.tmj") == -1) {
 		return -1;
@@ -95,17 +91,13 @@ static int scrgame_init(void)
 	define_spranim(&tileset, player.spr.anim + MOB_WALK, 8, 32, 256, 32, 32);
 	spr_origin(&player.spr, 16, 28);
 
-	for(i=0; i<8; i++) {
-		y = 256 + i * 32;
-		dir = spr_row_dir[i];
+	memset(&sprmob, 0, sizeof sprmob);
+	define_spranim(&tileset, sprmob.anim + MOB_IDLE, 1, 448, 256, 32, 32);
+	define_spranim(&tileset, sprmob.anim + MOB_FIRE, 1, 448 + 32, 256, 32, 32);
+	spr_origin(&sprmob, 16, 28);
 
-		mob_idle[dir] = tiles_define(&tileset, 448, y, 32, 32);
-		mob_idle[dir]->xorg = 16;
-		mob_idle[dir]->yorg = 28;
-
-		mob_fire[dir] = tiles_define(&tileset, 448+32, y, 32, 32);
-		mob_fire[dir]->xorg = 16;
-		mob_fire[dir]->yorg = 28;
+	for(i=0; i<dynarr_size(lvl.mobs); i++) {
+		lvl.mobs[i]->spr = sprmob;
 	}
 
 	return 0;
@@ -280,16 +272,8 @@ static void draw_bitplane(int bpl)
 				struct mob *mob = cell->mobs;
 				while(mob) {
 					grid_to_vscr(mob->x, mob->y, &x, &y);
-					switch(mob->state) {
-					case MOB_IDLE:
-						tile = mob_idle[mob->dir];
-						break;
-					case MOB_FIRE:
-						tile = mob_fire[mob->dir];
-						break;
-					default:
-						tile = 0;
-					}
+					seq = mob->spr.anim[mob->state].seq[mob->dir];
+					tile = seq->tile[0];
 
 					if(tile) tiles_blit_rle(tile, x - xscroll, y - yscroll, bpl);
 					mob = mob->next;

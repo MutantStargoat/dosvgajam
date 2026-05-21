@@ -1,5 +1,5 @@
-#ifndef PLAYER_H_
-#define PLAYER_H_
+#ifndef MOB_H_
+#define MOB_H_
 
 #include "level.h"
 #include "sprite.h"
@@ -33,4 +33,4 @@ void mob_lookat(struct mob *mob, int32_t x, int32_t y);
 
 void mob_state(struct mob *mob, int st);
 
-#endif	/* PLAYER_H_ */
+#endif	/* MOB_H_ */
