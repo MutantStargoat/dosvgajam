@@ -6,7 +6,7 @@
 #include "tiles.h"
 #include "json.h"
 #include "dynarr.h"
-#include "player.h"
+#include "mob.h"
 
 struct tileprop {
 	int id;

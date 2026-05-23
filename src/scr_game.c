@@ -7,7 +7,7 @@
 #include "tiles.h"
 #include "level.h"
 #include "rend.h"
-#include "player.h"
+#include "mob.h"
 #include "options.h"
 #include "dynarr.h"
 
@@ -32,7 +32,7 @@ static int prev_mx, prev_my;
 static struct level lvl;
 static int xscroll, yscroll;
 
-struct tileimg *seltile, *cursors[2];
+struct tileimg *seltile, *cursors[2], *balltile;
 static int mouse_mode;
 static long last_fps_upd, nframes;
 
@@ -75,6 +75,10 @@ static int scrgame_init(void)
 	/* another mouse cursor sprite */
 	cursors[1] = tiles_define(&tileset, 448, 176, 16, 16);
 	cursors[1]->xorg = cursors[1]->yorg = 7;
+
+	balltile = tiles_define(&tileset, 448 + 16, 160, 16, 16);
+	balltile->xorg = 8;
+	balltile->yorg = 8;
 
 	x = 256;
 	y = 200;
@@ -195,6 +199,10 @@ static void update(void)
 		scrollto(player.x, player.y);
 	}
 
+	if(player.state == MOB_FIRE) {
+		/* TODO */
+	}
+
 	/* compute the list of visible cells */
 	num_vis = 0;
 	cell = lvl.cells;
@@ -288,6 +296,11 @@ static void draw_bitplane(int bpl)
 
 					tiles_blit_rle(tile, x - xscroll, y - yscroll, bpl);
 					/*tiles_blit_rle(cursors[1], x - xscroll, y - yscroll, bpl);*/
+
+					if(player.beam.nseg) {
+						grid_to_vscr(player.beam.x1, player.beam.y1, &x, &y);
+						tiles_blit_rle(balltile, x - xscroll, y - yscroll, bpl);
+					}
 				}
 			}
 		}
@@ -341,15 +354,23 @@ static void scrgame_mouse(int bn, int press, int x, int y)
 	prev_mx = x;
 	prev_my = y;
 
-	if(!press) return;
 
-	if(bn == 0) {
-		vscr_to_cell(mouse_x + xscroll, mouse_y + yscroll, &cx, &cy);
+	if(press) {
+		if(bn == 0) {
+			vscr_to_cell(mouse_x + xscroll, mouse_y + yscroll, &cx, &cy);
 
-		vscr_to_grid(mouse_x + xscroll, mouse_y + yscroll, &gx, &gy);
-		gx -= 128;
-		gy -= 128;
-		mob_lookat(&player, gx, gy);
+			vscr_to_grid(mouse_x + xscroll, mouse_y + yscroll, &gx, &gy);
+			gx -= 128;
+			gy -= 128;
+			mob_lookat(&player, gx, gy);
+			mob_state(&player, MOB_FIRE);
+
+			mob_beam(&player, gx, gy);
+		}
+	} else {
+		if(bn == 0) {
+			mob_state(&player, MOB_IDLE);
+		}
 	}
 }
 

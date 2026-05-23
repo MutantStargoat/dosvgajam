@@ -4,7 +4,7 @@
 #include "tiles.h"
 #include "util.h"
 #include "dynarr.h"
-#include "player.h"
+#include "mob.h"
 
 struct tileset tileset;
 
