@@ -53,7 +53,7 @@ static unsigned int num_vis;
 
 static void draw_bitplane(int bpl);
 static void scrollto(int32_t x, int32_t y);
-static void gprintf(int x, int y, int bpl, const char *fmt, ...);
+static void gprintf(int x, int y, const char *fmt, ...);
 
 
 static int scrgame_init(void)
@@ -64,6 +64,9 @@ static int scrgame_init(void)
 	if(load_level(&lvl, "data/levels/testlvl.tmj") == -1) {
 		return -1;
 	}
+
+	tile_inval = tiles_define(&tileset, 464, 176, 16, 16);
+	tile_inval->xorg = tile_inval->yorg = 8;
 
 	/* define a cell selection tile */
 	seltile = tiles_define(&tileset, 384, 160, CELL_XSZ, CELL_YSZ);
@@ -77,8 +80,7 @@ static int scrgame_init(void)
 	cursors[1]->xorg = cursors[1]->yorg = 7;
 
 	balltile = tiles_define(&tileset, 448 + 16, 160, 16, 16);
-	balltile->xorg = 8;
-	balltile->yorg = 8;
+	balltile->xorg = balltile->yorg = 8;
 
 	x = 256;
 	y = 200;
@@ -91,6 +93,7 @@ static int scrgame_init(void)
 		}
 	}
 
+	init_mob(&player);
 	define_spranim(&tileset, player.spr.anim + MOB_IDLE, 1, 0, 256, 32, 32);
 	define_spranim(&tileset, player.spr.anim + MOB_WALK, 8, 32, 256, 32, 32);
 	spr_origin(&player.spr, 16, 28);
@@ -144,6 +147,12 @@ static int scrgame_start(void)
 	mob_state(&player, MOB_IDLE);
 
 	scrollto(lvl.startx, lvl.starty);
+
+	/* go through all the mobs, and call mob_state to initialize their current
+	 * animation frames */
+	for(i=0; i<dynarr_size(lvl.mobs); i++) {
+		mob_state(lvl.mobs[i], MOB_IDLE);
+	}
 
 #ifndef NO_SOUND
 	if(mus) {
@@ -265,6 +274,8 @@ static void draw_bitplane(int bpl)
 	struct tileimg *tile;
 	struct tileseq *seq;
 
+	cur_bpl = bpl;
+
 	player_cx = player.cell->cx;
 	player_cy = player.cell->cy;
 
@@ -273,17 +284,14 @@ static void draw_bitplane(int bpl)
 			cell = viscells[j];
 
 			/* TODO dither wall layer if tile bounds overlap player sprite */
-			draw_level_cell(&lvl, cell, i, cell->x, cell->y, bpl);
+			draw_level_cell(&lvl, cell, i, cell->x, cell->y);
 
 			/* draw mobs */
 			if(i == 1) {
 				struct mob *mob = cell->mobs;
 				while(mob) {
 					grid_to_vscr(mob->x, mob->y, &x, &y);
-					seq = mob->spr.anim[mob->state].seq[mob->dir];
-					tile = seq->tile[0];
-
-					if(tile) tiles_blit_rle(tile, x - xscroll, y - yscroll, bpl);
+					spr_draw(&mob->spr, x - xscroll, y - yscroll, mob->dir);
 					mob = mob->next;
 				}
 
@@ -291,16 +299,12 @@ static void draw_bitplane(int bpl)
 					grid_to_vscr(player.x, player.y, &x, &y);
 					tiles_blit_rle(seltile, cell->x, cell->y, bpl);
 
-					seq = player.spr.anim[player.state].seq[player.dir];
-					tile = seq->tile[(player.spr.frm >> 1) % player.spr.nfrm];		/* XXX remove the >> 1 */
+					spr_draw(&player.spr, x - xscroll, y - yscroll, player.dir);
 
-					tiles_blit_rle(tile, x - xscroll, y - yscroll, bpl);
-					/*tiles_blit_rle(cursors[1], x - xscroll, y - yscroll, bpl);*/
-
-					if(player.beam.nseg) {
+					/*if(player.beam.nseg) {
 						grid_to_vscr(player.beam.x1, player.beam.y1, &x, &y);
 						tiles_blit_rle(balltile, x - xscroll, y - yscroll, bpl);
-					}
+					}*/
 				}
 			}
 		}
@@ -321,12 +325,12 @@ static void draw_bitplane(int bpl)
 
 	tiles_blit_rle(cursors[mouse_mode], mouse_x, mouse_y, bpl);
 
-	gprintf(0, 0, bpl, fps_text);
-	/*gprintf(0, 8, bpl, "vsync: %s", vsync ? "on" : "off");*/
-	gprintf(90, 0, bpl, "vis:%d", num_vis);
-	gprintf(160, 0, bpl, "cell:%d,%d %s", player_cx, player_cy, strcellflags(player.cell->flags));
-	/*gprintf(0, 8, bpl, "player: %s,%s\n", fixpstr(player.x, 8), fixpstr(player.y, 8));
-	gprintf(180, 8, bpl, "mouse: %s,%s\n", fixpstr(mouse_gx, 8), fixpstr(mouse_gy, 8));*/
+	gprintf(0, 0, fps_text);
+	/*gprintf(0, 8, "vsync: %s", vsync ? "on" : "off");*/
+	gprintf(90, 0, "vis:%d", num_vis);
+	gprintf(160, 0, "cell:%d,%d %s", player_cx, player_cy, strcellflags(player.cell->flags));
+	/*gprintf(0, 8, "player: %s,%s\n", fixpstr(player.x, 8), fixpstr(player.y, 8));
+	gprintf(180, 8, "mouse: %s,%s\n", fixpstr(mouse_gx, 8), fixpstr(mouse_gy, 8));*/
 }
 
 static void scrgame_keyb(int key, int press)
@@ -416,7 +420,7 @@ static void scrollto(int32_t gridx, int32_t gridy)
 }
 
 
-static void gprintf(int x, int y, int bpl, const char *fmt, ...)
+static void gprintf(int x, int y, const char *fmt, ...)
 {
 	static char buf[1024];
 	va_list ap;
@@ -429,7 +433,7 @@ static void gprintf(int x, int y, int bpl, const char *fmt, ...)
 
 	while((c = *s++)) {
 		if(c >= FONT_OFFS && c < 128) {
-			tiles_fill_rle(font[c - 32], x, y, text_color, bpl);
+			tiles_fill_rle(font[c - 32], x, y, text_color, cur_bpl);
 		}
 		x += 8;
 	}

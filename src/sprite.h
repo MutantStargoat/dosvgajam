@@ -25,4 +25,6 @@ int define_spranim(struct tileset *ts, struct spranim *sa, int nfrm, int x, int 
 
 void spr_origin(struct sprite *spr, int x, int y);
 
+void spr_draw(struct sprite *spr, int x, int y, int dir);
+
 #endif	/* SPRITE_H_ */

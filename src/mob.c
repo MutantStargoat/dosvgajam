@@ -1,17 +1,24 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "mob.h"
 #include "level.h"
 #include "util.h"
+
+void init_mob(struct mob *mob)
+{
+	memset(mob, 0, sizeof *mob);
+	mob->dir = rand() & 7;
+	mob->state = MOB_INVALID;
+	mob->hp = 100;
+}
 
 struct mob *create_mob(void)
 {
 	struct mob *mob;
 
-	mob = calloc_nf(1, sizeof *mob);
-	mob->dir = rand() & 7;
-	mob->state = MOB_IDLE;
-	mob->hp = 100;
+	mob = malloc_nf(sizeof *mob);
+	init_mob(mob);
 	return mob;
 }
 
@@ -78,9 +85,15 @@ void mob_state(struct mob *mob, int st)
 	if(mob->state == st) return;
 
 	mob->state = st;
-	mob->spr.cur = mob->spr.anim + st;
+
+	if(mob->spr.anim[st].seq[0]) {
+		mob->spr.cur = mob->spr.anim + st;
+		mob->spr.nfrm = mob->spr.cur->seq[mob->dir]->ntiles;
+	} else {
+		mob->spr.cur = 0;
+		mob->spr.nfrm = 0;
+	}
 	mob->spr.frm = 0;
-	mob->spr.nfrm = mob->spr.cur->seq[mob->dir]->ntiles;
 }
 
 static INLINE void ray_step(struct level *lvl, int32_t x, int32_t y, int32_t dx,

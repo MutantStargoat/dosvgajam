@@ -20,6 +20,9 @@ long time_msec;
 
 struct app_screen *cur_scr;
 
+struct tileimg *tile_inval;
+int cur_bpl;
+
 /* available screens */
 #define MAX_SCREENS	8
 static struct app_screen *screens[MAX_SCREENS];

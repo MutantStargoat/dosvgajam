@@ -1,5 +1,6 @@
 #include "sprite.h"
 #include "level.h"
+#include "app.h"
 
 int define_spranim(struct tileset *ts, struct spranim *sa, int nfrm, int x, int y,
 		int w, int h)
@@ -29,4 +30,17 @@ void spr_origin(struct sprite *spr, int x, int y)
 			}
 		}
 	}
+}
+
+void spr_draw(struct sprite *spr, int x, int y, int dir)
+{
+	struct tileimg *tile;
+
+	if(!spr->cur) {
+		tile = tile_inval;
+	} else {
+		tile = spr->cur->seq[dir]->tile[(spr->frm >> 1) % spr->nfrm];
+	}
+
+	tiles_blit_rle(tile, x, y, cur_bpl);
 }

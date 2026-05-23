@@ -5,6 +5,8 @@
 #include "sprite.h"
 
 enum {
+	MOB_INVALID,
+
 	MOB_IDLE,
 	MOB_WALK,
 	MOB_FIRE,
@@ -40,6 +42,8 @@ struct mob {
 
 	struct mob *next;
 };
+
+void init_mob(struct mob *mob);
 
 struct mob *create_mob(void);
 void free_mob(struct mob *mob);

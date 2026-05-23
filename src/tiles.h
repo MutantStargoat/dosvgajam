@@ -35,6 +35,8 @@ struct tileseq {
 	struct tileimg **tile;
 };
 
+extern struct tileimg *tile_inval;
+
 int tiles_load(struct tileset *ts, const char *fname);
 void tiles_destroy(struct tileset *ts);
 

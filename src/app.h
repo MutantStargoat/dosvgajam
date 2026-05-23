@@ -60,6 +60,11 @@ extern long time_msec;
 extern struct app_screen *cur_scr;
 extern struct app_screen scr_menu, scr_game;
 
+struct tileimg;
+extern struct tileimg *tile_inval;	/* invalid tile */
+/* current bitplane, to avoid passing it to EVERY drawing function */
+extern int cur_bpl;
+
 
 int app_init(void);
 void app_shutdown(void);
