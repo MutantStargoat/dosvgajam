@@ -110,11 +110,11 @@ static INLINE void ray_step(struct level *lvl, int32_t x, int32_t y, int32_t dx,
 	/* find next boundaries when stepping horizontally or vertically */
 	hxx = (dx > 0 ? x + 256 : x) & ~0xff;
 	/*hslope = (dy << 8) / dx;*/
-	hyy = (hslope * (hxx - x)) >> 8;
+	hyy = y + ((hslope * (hxx - x)) >> 8);
 
 	vyy = (dy > 0 ? y + 256 : y) & ~0xff;
 	/*vslope = (dx << 8) / dy;*/
-	vxx = (vslope * (vyy - y)) >> 8;
+	vxx = x + ((vslope * (vyy - y)) >> 8);
 
 	if(abs(vxx) > abs(hyy)) {
 		/* hxx,hyy closer */

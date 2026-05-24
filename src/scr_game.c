@@ -301,10 +301,10 @@ static void draw_bitplane(int bpl)
 
 					spr_draw(&player.spr, x - xscroll, y - yscroll, player.dir);
 
-					/*if(player.beam.nseg) {
+					if(player.beam.nseg) {
 						grid_to_vscr(player.beam.x1, player.beam.y1, &x, &y);
 						tiles_blit_rle(balltile, x - xscroll, y - yscroll, bpl);
-					}*/
+					}
 				}
 			}
 		}
