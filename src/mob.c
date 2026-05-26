@@ -99,7 +99,7 @@ void mob_state(struct mob *mob, int st)
 static INLINE void ray_step(struct level *lvl, int32_t x, int32_t y, int32_t dx,
 		int32_t dy, int32_t hslope, int32_t vslope,	int32_t *nx, int32_t *ny)
 {
-	int32_t hxx, hyy, vxx, vyy;
+	int32_t x1, y1, offs;
 
 	/* convert to origin at upper-left, rather than center of cells, to make
 	 * stepping simpler
@@ -108,23 +108,23 @@ static INLINE void ray_step(struct level *lvl, int32_t x, int32_t y, int32_t dx,
 	y += 128;
 
 	/* find next boundaries when stepping horizontally or vertically */
-	hxx = (dx > 0 ? x + 256 : x) & ~0xff;
+	x1 = (dx > 0 ? x + 256 : x) & ~0xff;
 	/*hslope = (dy << 8) / dx;*/
-	hyy = y + ((hslope * (hxx - x)) >> 8);
+	y1 = y + ((hslope * (x1 - x)) >> 8);
+	offs = y1 - (y & ~0xff);
 
-	vyy = (dy > 0 ? y + 256 : y) & ~0xff;
-	/*vslope = (dx << 8) / dy;*/
-	vxx = x + ((vslope * (vyy - y)) >> 8);
-
-	if(abs(vxx) > abs(hyy)) {
-		/* hxx,hyy closer */
-		*nx = hxx - 128;
-		*ny = hyy - 128;
-	} else {
-		/* vxx,vyy closer */
-		*nx = vxx - 128;
-		*ny = vyy - 128;
+	if(offs < 256 && offs >= 0) {
+		*nx = x1 - 128;
+		*ny = y1 - 128;
+		return;
 	}
+
+	y1 = (dy > 0 ? y + 256 : y) & ~0xff;
+	/*vslope = (dx << 8) / dy;*/
+	x1 = x + ((vslope * (y1 - y)) >> 8);
+
+	*nx = x1 - 128;
+	*ny = y1 - 128;
 }
 
 void mob_beam(struct mob *mob, int32_t tx, int32_t ty)

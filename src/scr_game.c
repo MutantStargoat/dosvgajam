@@ -42,6 +42,8 @@ static int text_color = 0xff;
 
 static struct mob player;
 
+static int dbg_hide_walls;
+
 
 #ifdef DRAW_FULL
 #define MAX_VIS_CELLS	8192
@@ -283,8 +285,10 @@ static void draw_bitplane(int bpl)
 		for(j=0; j<num_vis; j++) {
 			cell = viscells[j];
 
-			/* TODO dither wall layer if tile bounds overlap player sprite */
-			draw_level_cell(&lvl, cell, i, cell->x, cell->y);
+			if((i & 1) == 0 || !dbg_hide_walls) {
+				/* TODO dither wall layer if tile bounds overlap player sprite */
+				draw_level_cell(&lvl, cell, i, cell->x, cell->y);
+			}
 
 			/* draw mobs */
 			if(i == 1) {
@@ -344,6 +348,10 @@ static void scrgame_keyb(int key, int press)
 
 	case 'v':
 		vsync ^= 1;
+		break;
+
+	case KEY_F2:
+		dbg_hide_walls ^= 1;
 		break;
 
 	default:
