@@ -32,6 +32,8 @@ enum {
 	CELL_EXITS	= CELL_EXIT_N | CELL_EXIT_W | CELL_EXIT_S | CELL_EXIT_E
 };
 
+#define CELL_EXIT(dir)		(CELL_EXIT_N << (dir))
+
 struct mob;
 
 struct level_cell {
@@ -40,7 +42,8 @@ struct level_cell {
 	int height;				/* maximum height of tiles/sprites in cell, for vis */
 	unsigned int flags;
 
-	struct mob *mobs;		/* linked list */
+	struct mob *mobs;			/* linked list */
+	struct beamseg *beamsegs;	/* linked list */
 
 	struct level_cell *dirty_next;
 };
@@ -81,6 +84,9 @@ const char *strcellflags(unsigned int flags);
 
 int scrvec_to_dir8(int dx, int dy);
 int gridvec_to_dir8(int32_t dx, int32_t dy);
+
+void cell_add_beamseg(struct level_cell *cell, struct beamseg *bs);
+int cell_remove_beamseg(struct level_cell *cell, struct beamseg *bs);
 
 /* implicit in these conversions is the tile size: 64x32 */
 static INLINE void vscr_to_grid(int sx, int sy, int32_t *gridx, int32_t *gridy)

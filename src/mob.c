@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 #include "mob.h"
 #include "level.h"
 #include "util.h"
@@ -96,7 +97,7 @@ void mob_state(struct mob *mob, int st)
 	mob->spr.frm = 0;
 }
 
-static INLINE void ray_step(struct level *lvl, int32_t x, int32_t y, int32_t dx,
+static INLINE int ray_step(struct level *lvl, int32_t x, int32_t y, int32_t dx,
 		int32_t dy, int32_t hslope, int32_t vslope,	int32_t *nx, int32_t *ny)
 {
 	int32_t x1, y1, offs;
@@ -116,7 +117,7 @@ static INLINE void ray_step(struct level *lvl, int32_t x, int32_t y, int32_t dx,
 	if(offs < 256 && offs >= 0) {
 		*nx = x1 - 128;
 		*ny = y1 - 128;
-		return;
+		return dx > 0 ? DIR_E : DIR_W;
 	}
 
 	y1 = (dy > 0 ? y + 256 : y) & ~0xff;
@@ -125,15 +126,26 @@ static INLINE void ray_step(struct level *lvl, int32_t x, int32_t y, int32_t dx,
 
 	*nx = x1 - 128;
 	*ny = y1 - 128;
+	return dy > 0 ? DIR_S : DIR_N;
 }
 
 void mob_beam(struct mob *mob, int32_t tx, int32_t ty)
 {
-	int i, end_cx, end_cy;
-	int32_t hslope, vslope, dx, dy, nx, ny;
+	int i, exit_dir;
+	int32_t hslope, vslope, dx, dy, x, y, nx, ny;
+	struct level *lvl = mob->lvl;
+	struct level_cell *cell = mob->cell;
+	struct beamseg *seg;
 
-	mob->beam.x0 = mob->x;
-	mob->beam.y0 = mob->y;
+	/* first delete the previous beam if it's still active */
+	for(i=0; i<mob->beam.nseg; i++) {
+		seg = mob->beam.seg + i;
+		cell_remove_beamseg(seg->cell, seg);
+	}
+	mob->beam.nseg = 0;
+
+	x = mob->beam.x0 = mob->x;
+	y = mob->beam.y0 = mob->y;
 
 	dx = tx - mob->x;
 	dy = ty - mob->y;
@@ -141,9 +153,48 @@ void mob_beam(struct mob *mob, int32_t tx, int32_t ty)
 	hslope = dx ? (dy << 8) / dx : 256;
 	vslope = dy ? (dx << 8) / dy : 256;
 
-	ray_step(mob->lvl, mob->x, mob->y, dx, dy, hslope, vslope, &nx, &ny);
+	for(i=0; i<MAX_BEAM_SEG; i++) {
+		exit_dir = ray_step(lvl, x, y, dx, dy, hslope, vslope, &nx, &ny);
+
+		seg = mob->beam.seg + i;
+		seg->x0 = x;
+		seg->y0 = y;
+		seg->x1 = nx;
+		seg->y1 = ny;
+		seg->beam = &mob->beam;
+
+		assert(cell->beamsegs == 0);
+		cell_add_beamseg(cell, seg);
+		mob->beam.nseg++;
+
+		if(!(cell->flags & CELL_EXIT(exit_dir))) {
+			break;
+		}
+
+		switch(exit_dir) {
+		case DIR_E:
+			if(cell->cx >= lvl->size - 1) goto break_loop;
+			cell++;
+			break;
+		case DIR_W:
+			if(cell->cx <= 0) goto break_loop;
+			cell--;
+			break;
+		case DIR_S:
+			if(cell->cy >= lvl->size - 1) goto break_loop;
+			cell += lvl->size;
+			break;
+		case DIR_N:
+			if(cell->cy <= 0) goto break_loop;
+			cell -= lvl->size;
+			break;
+		}
+
+		x = nx;
+		y = ny;
+	}
+break_loop:
 
 	mob->beam.x1 = nx;
 	mob->beam.y1 = ny;
-	mob->beam.nseg = 1;
 }

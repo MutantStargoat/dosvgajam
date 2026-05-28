@@ -18,6 +18,7 @@ struct beam;
 
 struct beamseg {
 	struct beam *beam;
+	struct level_cell *cell;
 	int32_t x0, y0, x1, y1;
 	int color;
 

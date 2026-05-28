@@ -167,3 +167,32 @@ int gridvec_to_dir8(int32_t dx, int32_t dy)
 	/* slope between 0.4142 and 2.4142 -> between 22.5 and 67.5 deg */
 	return diag[flip];
 }
+
+void cell_add_beamseg(struct level_cell *cell, struct beamseg *bs)
+{
+	bs->cell = cell;
+	bs->next = cell->beamsegs;
+	cell->beamsegs = bs;
+}
+
+int cell_remove_beamseg(struct level_cell *cell, struct beamseg *bs)
+{
+	int found = 0;
+	struct beamseg dummy, *prev;
+
+	dummy.next = cell->beamsegs;
+	prev = &dummy;
+	while(prev->next) {
+		if(prev->next == bs) {
+			prev->next = bs->next;
+			found = 1;
+			break;
+		}
+		prev = prev->next;
+	}
+	cell->beamsegs = dummy.next;
+
+	bs->next = 0;
+	bs->cell = 0;
+	return found;
+}

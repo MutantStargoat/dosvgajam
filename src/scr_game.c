@@ -275,6 +275,7 @@ static void draw_bitplane(int bpl)
 	struct level_cell *cell;
 	struct tileimg *tile;
 	struct tileseq *seq;
+	struct beamseg *bseg;
 
 	cur_bpl = bpl;
 
@@ -309,6 +310,13 @@ static void draw_bitplane(int bpl)
 						grid_to_vscr(player.beam.x1, player.beam.y1, &x, &y);
 						tiles_blit_rle(balltile, x - xscroll, y - yscroll, bpl);
 					}
+				}
+
+				bseg = cell->beamsegs;
+				while(bseg) {
+					grid_to_vscr(bseg->x1, bseg->y1, &x, &y);
+					tiles_blit_rle(balltile, x - xscroll,y - yscroll, bpl);
+					bseg = bseg->next;
 				}
 			}
 		}
