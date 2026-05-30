@@ -12,6 +12,8 @@
 #include "dynarr.h"
 
 #define BEAM_DMG	8
+#define BEAM_COL	253
+#define BEAM_HEIGHT	16
 
 #ifndef NO_SOUND
 #include "audio.h"
@@ -135,6 +137,9 @@ static int scrgame_start(void)
 		vga_setpal(-1, tileset.cmap[i].r, tileset.cmap[i].g, tileset.cmap[i].b);
 	}
 	vga_setpal(0xff, 0xff, 0xff, 0xff);
+
+	vga_setpal(BEAM_COL, 92, 92, 160);
+	vga_setpal(BEAM_COL+1, 192, 192, 255);
 
 	vga_setpitch(VGA_PITCH);
 
@@ -278,6 +283,7 @@ static void draw_bitplane(int bpl)
 	struct tileimg *tile;
 	struct tileseq *seq;
 	struct beamseg *bseg;
+	struct mob *mob;
 
 	cur_bpl = bpl;
 
@@ -295,7 +301,30 @@ static void draw_bitplane(int bpl)
 
 			/* draw mobs */
 			if(i == 1) {
-				struct mob *mob = cell->mobs;
+				bseg = cell->beamsegs;
+				while(bseg) {
+					grid_to_vscr(bseg->x0, bseg->y0, &x, &y);
+					grid_to_vscr(bseg->x1, bseg->y1, &x1, &y1);
+					x -= xscroll;
+					y -= yscroll + BEAM_HEIGHT;
+					x1 -= xscroll;
+					y1 -= yscroll + BEAM_HEIGHT;
+					clip_line(&x, &y, &x1, &y1, 1, 1, FB_WIDTH - 2, FB_HEIGHT - 2);
+					draw_line(x, y, x1, y1, BEAM_COL + 1);
+
+					if(abs(x1 - x) > abs(y1 - y)) {
+						draw_line(x, y - 1, x1, y1 - 1, BEAM_COL);
+						draw_line(x, y + 1, x1, y1 + 1, BEAM_COL);
+					} else {
+						draw_line(x - 1, y, x1 - 1, y1, BEAM_COL);
+						draw_line(x + 1, y, x1 + 1, y1, BEAM_COL);
+					}
+
+					/*tiles_blit_rle(balltile, x1, y1, bpl);*/
+					bseg = bseg->next;
+				}
+
+				mob = cell->mobs;
 				while(mob) {
 					grid_to_vscr(mob->x, mob->y, &x, &y);
 					spr_draw(&mob->spr, x - xscroll, y - yscroll, mob->dir);
@@ -312,20 +341,6 @@ static void draw_bitplane(int bpl)
 						grid_to_vscr(player.beam.x1, player.beam.y1, &x, &y);
 						tiles_blit_rle(balltile, x - xscroll, y - yscroll, bpl);
 					}
-				}
-
-				bseg = cell->beamsegs;
-				while(bseg) {
-					grid_to_vscr(bseg->x0, bseg->y0, &x, &y);
-					grid_to_vscr(bseg->x1, bseg->y1, &x1, &y1);
-					x -= xscroll;
-					y -= yscroll;
-					x1 -= xscroll;
-					y1 -= yscroll;
-					clip_line(&x, &y, &x1, &y1, 0, 0, FB_WIDTH - 1, FB_HEIGHT - 1);
-					draw_line(x, y, x1, y1, 0xff);
-					/*tiles_blit_rle(balltile, x1, y1, bpl);*/
-					bseg = bseg->next;
 				}
 			}
 		}

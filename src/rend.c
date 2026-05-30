@@ -122,6 +122,10 @@ void draw_line(int x0, int y0, int x1, int y1, uint8_t color)
 	int i, dx, dy, dx2, dy2, xinc, yinc, err;
 	uint8_t *vmem;
 
+#ifdef VGA_LFB
+	if(cur_bpl) return;
+#endif
+
 	vmem = vga_backbuf + y0 * SCANLEN + x0;
 	dx = x1 - x0;
 	dy = y1 - y0;
