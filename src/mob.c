@@ -1,10 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 #include <assert.h>
 #include "mob.h"
 #include "level.h"
 #include "util.h"
+#include "xmath.h"
 
 void init_mob(struct mob *mob)
 {
@@ -109,7 +111,7 @@ static INLINE int ray_step(struct level *lvl, int32_t x, int32_t y, int32_t dx,
 	y += 128;
 
 	/* find next boundaries when stepping horizontally or vertically */
-	x1 = (dx > 0 ? x + 256 : x) & ~0xff;
+	x1 = (dx > 0 ? x + 256 : x - 1) & ~0xff;
 	/*hslope = (dy << 8) / dx;*/
 	y1 = y + ((hslope * (x1 - x)) >> 8);
 	offs = y1 - (y & ~0xff);
@@ -120,7 +122,7 @@ static INLINE int ray_step(struct level *lvl, int32_t x, int32_t y, int32_t dx,
 		return dx > 0 ? DIR_E : DIR_W;
 	}
 
-	y1 = (dy > 0 ? y + 256 : y) & ~0xff;
+	y1 = (dy > 0 ? y + 256 : y - 1) & ~0xff;
 	/*vslope = (dx << 8) / dy;*/
 	x1 = x + ((vslope * (y1 - y)) >> 8);
 
@@ -129,13 +131,15 @@ static INLINE int ray_step(struct level *lvl, int32_t x, int32_t y, int32_t dx,
 	return dy > 0 ? DIR_S : DIR_N;
 }
 
-void mob_beam(struct mob *mob, int32_t tx, int32_t ty)
+void mob_beam(struct mob *mob, int32_t tx, int32_t ty, int dmg)
 {
 	int i, exit_dir;
-	int32_t hslope, vslope, dx, dy, x, y, nx, ny;
+	int32_t hslope, vslope, dx, dy, x, y, nx, ny, rdx, rdy, hitx, hity;
 	struct level *lvl = mob->lvl;
 	struct level_cell *cell = mob->cell;
 	struct beamseg *seg;
+	struct mob *cellmob, *hitmob;
+	int32_t hit_dist, t;
 
 	/* first delete the previous beam if it's still active */
 	for(i=0; i<mob->beam.nseg; i++) {
@@ -156,6 +160,28 @@ void mob_beam(struct mob *mob, int32_t tx, int32_t ty)
 	for(i=0; i<MAX_BEAM_SEG; i++) {
 		exit_dir = ray_step(lvl, x, y, dx, dy, hslope, vslope, &nx, &ny);
 
+		rdx = nx - x;
+		rdy = ny - y;
+
+		hitmob = 0;
+		hit_dist = INT_MAX;
+		cellmob = cell->mobs;
+		while(cellmob) {
+			if((t = mob_rayhit(cellmob, x, y, rdx, rdy, &hitx, &hity)) >= 0 && t < hit_dist) {
+				hitmob = cellmob;
+				hit_dist = t;
+			}
+			cellmob = cellmob->next;
+		}
+
+		if(hitmob) {
+			hitmob->dmg += dmg;
+			nx = hitx;
+			ny = hity;
+			hitmob->hitx = nx;
+			hitmob->hity = ny;
+		}
+
 		seg = mob->beam.seg + i;
 		seg->x0 = x;
 		seg->y0 = y;
@@ -167,7 +193,7 @@ void mob_beam(struct mob *mob, int32_t tx, int32_t ty)
 		cell_add_beamseg(cell, seg);
 		mob->beam.nseg++;
 
-		if(!(cell->flags & CELL_EXIT(exit_dir))) {
+		if(hitmob || !(cell->flags & CELL_EXIT(exit_dir))) {
 			break;
 		}
 
@@ -197,4 +223,56 @@ break_loop:
 
 	mob->beam.x1 = nx;
 	mob->beam.y1 = ny;
+}
+
+/*
+static int32_t ray_pt_sqdist(int32_t ox, int32_t oy, int32_t dx, int32_t dy, int32_t px, int32_t py)
+{
+	int32_t pdx, pdy, dotp, lensq;
+
+	pdx = px - ox;
+	pdy = py - oy;
+
+	dotp = vec2_dot(dx, dy, pdx, pdy);
+	if(dotp <= 0) {
+		return vec2_dot(pdx, pdy, pdx, pdy);
+	}
+
+	lensq = vec2_dot(dx, dy, dx, dy);
+	if(dotp >= lensq) {
+		pdx = px - (ox + dx);
+		pdy = py - (oy + dy);
+		return vec2_dot(pdx, pdy, pdx, pdy);
+	}
+
+	return vec2_dot(pdx, pdy, pdx, pdy) - muldiv(dotp, dotp, lensq);
+}
+*/
+
+int32_t mob_rayhit(struct mob *mob, int32_t ox, int32_t oy, int32_t dx, int32_t dy,
+		int32_t *hitx, int32_t *hity)
+{
+	int i;
+	int32_t x, y, dirx, diry, rsq, lensq;
+
+	x = ox;
+	y = oy;
+	rsq = mob->rad * mob->rad >> 8;
+
+	dx >>= 4;
+	dy >>= 4;
+
+	for(i=0; i<16; i++) {
+		dirx = x - mob->x;
+		diry = y - mob->y;
+		if((lensq = vec2_dot(dirx, diry, dirx, diry)) < rsq) {
+			*hitx = x;
+			*hity = y;
+			return lensq;
+		}
+
+		x += dx;
+		y += dy;
+	}
+	return -1;
 }

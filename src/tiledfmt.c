@@ -434,6 +434,7 @@ static int load_gameobj(struct level *lvl, struct json_obj *jobj)
 				mob->lvl = lvl;
 				mob->x = gridx;
 				mob->y = gridy;
+				mob->rad = 64;
 				grid_to_cell(gridx, gridy, &cx, &cy);
 				mob->cell = get_level_cell(lvl, cx, cy);
 				mob->next = mob->cell->mobs;

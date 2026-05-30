@@ -39,4 +39,7 @@ void mat_perspective(int32_t *m, int vfov, int32_t aspect, int32_t znear, int32_
 void mat_mult(int32_t *ma, const int32_t *mb);
 void mat_mult_pre(int32_t *ma, const int32_t *mb);
 
+/* 2D math in 24.8 */
+int32_t vec2_dot(int32_t ax, int32_t ay, int32_t bx, int32_t by);
+
 #endif	/* XMATH_H_ */

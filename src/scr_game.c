@@ -11,6 +11,8 @@
 #include "options.h"
 #include "dynarr.h"
 
+#define BEAM_DMG	8
+
 #ifndef NO_SOUND
 #include "audio.h"
 
@@ -385,7 +387,7 @@ static void scrgame_mouse(int bn, int press, int x, int y)
 			mob_lookat(&player, gx, gy);
 			mob_state(&player, MOB_FIRE);
 
-			mob_beam(&player, gx, gy);
+			mob_beam(&player, gx, gy, BEAM_DMG);
 		}
 	} else {
 		if(bn == 0) {

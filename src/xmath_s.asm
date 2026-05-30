@@ -217,5 +217,18 @@ mat_mult_:
 	pop ebp
 	ret
 
-; vi:ft=nasm ts=8 sts=8 sw=8:
+
+	; 24.8 2D dot product
+	; eax: Ax, edx: Ay, ebx: Bx, ecx: By
+	global vec2_dot_
+vec2_dot_:
+	imul ebx
+	shrd eax, edx, 8
+	mov ebx, eax
+	mov eax, edx
+	imul ecx
+	shrd eax, edx, 8
+	add eax, ebx
 	ret
+
+; vi:ft=nasm ts=8 sts=8 sw=8:

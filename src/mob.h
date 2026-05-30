@@ -33,10 +33,11 @@ struct beam {
 };
 
 struct mob {
-	int32_t x, y;
+	int32_t x, y, rad;
 	int state, dir;
 	struct sprite spr;
-	int hp;
+	int hp, dmg;	/* hit points, and damage accumulator since last update */
+	int32_t hitx, hity;	/* position of last hit */
 	struct level *lvl;
 	struct level_cell *cell;
 	struct beam beam;
@@ -59,6 +60,9 @@ void mob_state(struct mob *mob, int st);
 /* shoot a beam towards a target position, check against level cells, and break
  * it into beam segments, one per cell to be able to draw it correctly
  */
-void mob_beam(struct mob *mob, int32_t tx, int32_t ty);
+void mob_beam(struct mob *mob, int32_t tx, int32_t ty, int dmg);
+
+int32_t mob_rayhit(struct mob *mob, int32_t ox, int32_t oy, int32_t dx, int32_t dy,
+		int32_t *hitx, int32_t *hity);
 
 #endif	/* MOB_H_ */

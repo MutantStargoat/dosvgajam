@@ -159,6 +159,11 @@ void mat_mult_pre(int32_t *ma, const int32_t *mb)
 }
 
 
+int32_t vec2_dot(int32_t ax, int32_t ay, int32_t bx, int32_t by)
+{
+	return (ax * bx >> 8) + (ay * by >> 8);
+}
+
 int sintab[] = {
 	0, 100, 201, 301, 401, 502, 602, 702, 802, 902, 1002, 1102, 1202,
 	1301, 1400, 1499, 1598, 1696, 1794, 1892, 1990, 2087, 2184, 2281,
