@@ -273,7 +273,7 @@ static void scrgame_display(void)
 
 static void draw_bitplane(int bpl)
 {
-	int i, j, x, y, mouse_cx, mouse_cy, mouse_gx, mouse_gy, player_cx, player_cy;
+	int i, j, x, y, x1, y1, mouse_cx, mouse_cy, mouse_gx, mouse_gy, player_cx, player_cy;
 	struct level_cell *cell;
 	struct tileimg *tile;
 	struct tileseq *seq;
@@ -316,8 +316,15 @@ static void draw_bitplane(int bpl)
 
 				bseg = cell->beamsegs;
 				while(bseg) {
-					grid_to_vscr(bseg->x1, bseg->y1, &x, &y);
-					tiles_blit_rle(balltile, x - xscroll,y - yscroll, bpl);
+					grid_to_vscr(bseg->x0, bseg->y0, &x, &y);
+					grid_to_vscr(bseg->x1, bseg->y1, &x1, &y1);
+					x -= xscroll;
+					y -= yscroll;
+					x1 -= xscroll;
+					y1 -= yscroll;
+					clip_line(&x, &y, &x1, &y1, 0, 0, FB_WIDTH - 1, FB_HEIGHT - 1);
+					draw_line(x, y, x1, y1, 0xff);
+					/*tiles_blit_rle(balltile, x1, y1, bpl);*/
 					bseg = bseg->next;
 				}
 			}
