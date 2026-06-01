@@ -1,0 +1,14 @@
+#!/bin/sh
+
+find . -iname '*.o' | xargs rm -f
+find . -iname '*.d' | xargs rm -f
+find . -iname '*.obj' | xargs rm -f
+find . -iname '*.lib' | xargs rm -f
+find . -iname '*.occ' | xargs rm -f
+find . -iname '*.lbc' | xargs rm -f
+find . -iname '*.lnk' | xargs rm -f
+find . -iname '*.err' | xargs rm -f
+rm -f game game.exe GAME.EXE
+rm -f *.map *.MAP
+rm -f *.zip
+rm -f core.*

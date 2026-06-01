@@ -217,7 +217,7 @@ static void update(void)
 
 	if(player.state == MOB_FIRE) {
 		if(player.state_t == 0) {
-			vscr_to_grid(mouse_x + xscroll, mouse_y + yscroll, &gx, &gy);
+			vscr_to_grid(mouse_x + xscroll, mouse_y + yscroll + BEAM_HEIGHT, &gx, &gy);
 			gx -= 128;
 			gy -= 128;
 			mob_lookat(&player, gx, gy);
