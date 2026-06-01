@@ -7,6 +7,7 @@
 #include "level.h"
 #include "util.h"
 #include "xmath.h"
+#include "app.h"
 
 void init_mob(struct mob *mob)
 {
@@ -88,6 +89,7 @@ void mob_state(struct mob *mob, int st)
 	if(mob->state == st) return;
 
 	mob->state = st;
+	mob->state_t = 0;
 
 	if(mob->spr.anim[st].seq[0]) {
 		mob->spr.cur = mob->spr.anim + st;
@@ -142,11 +144,7 @@ void mob_beam(struct mob *mob, int32_t tx, int32_t ty, int dmg)
 	int32_t hit_dist, t;
 
 	/* first delete the previous beam if it's still active */
-	for(i=0; i<mob->beam.nseg; i++) {
-		seg = mob->beam.seg + i;
-		cell_remove_beamseg(seg->cell, seg);
-	}
-	mob->beam.nseg = 0;
+	mob_beamstop(mob);
 
 	x = mob->beam.x0 = mob->x;
 	y = mob->beam.y0 = mob->y;
@@ -223,6 +221,18 @@ break_loop:
 
 	mob->beam.x1 = nx;
 	mob->beam.y1 = ny;
+}
+
+void mob_beamstop(struct mob *mob)
+{
+	int i;
+	struct beamseg *seg;
+
+	for(i=0; i<mob->beam.nseg; i++) {
+		seg = mob->beam.seg + i;
+		cell_remove_beamseg(seg->cell, seg);
+	}
+	mob->beam.nseg = 0;
 }
 
 /*

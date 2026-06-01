@@ -124,9 +124,12 @@ void draw_line(int x0, int y0, int x1, int y1, uint8_t color)
 
 #ifdef VGA_LFB
 	if(cur_bpl) return;
-#endif
 
 	vmem = vga_backbuf + y0 * SCANLEN + x0;
+#else
+	vmem = vga_backbuf + y0 * SCANLEN + (x0 >> 2);
+#endif
+
 	dx = x1 - x0;
 	dy = y1 - y0;
 
@@ -149,22 +152,48 @@ void draw_line(int x0, int y0, int x1, int y1, uint8_t color)
 		/* x-major */
 		err = dy2 - dx;
 		for(i=0; i<=dx; i++) {
+#ifdef VGA_LFB
 			*vmem = color;
+#else
+			if((x0 & 3) == cur_bpl) {
+				*vmem = color;
+			}
+#endif
 			if(err >= 0) {
 				err -= dx2;
 				vmem += yinc;
 			}
 			err += dy2;
+#ifdef VGA_LFB
 			vmem += xinc;
+#else
+			if((x0 & 3) == 3) {
+				vmem += xinc;
+			}
+			x0 += xinc;
+#endif
 		}
 	} else {
 		/* y-major */
 		err = dx2 - dy;
 		for(i=0; i<=dy; i++) {
+#ifdef VGA_LFB
 			*vmem = color;
+#else
+			if((x0 & 3) == cur_bpl) {
+				*vmem = color;
+			}
+#endif
 			if(err >= 0) {
 				err -= dy2;
+#ifdef VGA_LFB
 				vmem += xinc;
+#else
+				if((x0 & 3) == 3) {
+					vmem += xinc;
+				}
+				x0 += xinc;
+#endif
 			}
 			err += dx2;
 			vmem += yinc;

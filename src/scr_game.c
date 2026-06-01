@@ -14,6 +14,7 @@
 #define BEAM_DMG	8
 #define BEAM_COL	253
 #define BEAM_HEIGHT	16
+#define BEAM_DUR	100
 
 #ifndef NO_SOUND
 #include "audio.h"
@@ -192,6 +193,7 @@ static void update(void)
 	static long prev_upd;
 	long dt;
 	int i, j, x, y, dx, dy;
+	int32_t gx, gy;
 	struct level_cell *cell;
 
 	dt = time_msec - prev_upd;
@@ -213,13 +215,28 @@ static void update(void)
 		dx += SCROLL_SPEED * dt >> 2;
 	}
 
-	if(mob_move(&player, dx, dy)) {
-		scrollto(player.x, player.y);
+	if(player.state == MOB_FIRE) {
+		if(player.state_t == 0) {
+			vscr_to_grid(mouse_x + xscroll, mouse_y + yscroll, &gx, &gy);
+			gx -= 128;
+			gy -= 128;
+			mob_lookat(&player, gx, gy);
+			mob_beam(&player, gx, gy, BEAM_DMG);
+
+		} else if(player.state_t >= BEAM_DUR) {
+
+			/* fire duration ended, change state and remove beam */
+			mob_state(&player, MOB_IDLE);
+			mob_beamstop(&player);
+		}
+
+	} else {
+		if(mob_move(&player, dx, dy)) {
+			scrollto(player.x, player.y);
+		}
 	}
 
-	if(player.state == MOB_FIRE) {
-		/* TODO */
-	}
+	player.state_t += dt;
 
 	/* compute the list of visible cells */
 	num_vis = 0;
@@ -278,10 +295,9 @@ static void scrgame_display(void)
 
 static void draw_bitplane(int bpl)
 {
-	int i, j, x, y, x1, y1, mouse_cx, mouse_cy, mouse_gx, mouse_gy, player_cx, player_cy;
+	int i, j, x, y, x1, y1, player_cx, player_cy;
+	int32_t mouse_gx, mouse_gy;
 	struct level_cell *cell;
-	struct tileimg *tile;
-	struct tileseq *seq;
 	struct beamseg *bseg;
 	struct mob *mob;
 
@@ -320,7 +336,6 @@ static void draw_bitplane(int bpl)
 						draw_line(x + 1, y, x1 + 1, y1, BEAM_COL);
 					}
 
-					/*tiles_blit_rle(balltile, x1, y1, bpl);*/
 					bseg = bseg->next;
 				}
 
@@ -336,25 +351,16 @@ static void draw_bitplane(int bpl)
 					tiles_blit_rle(seltile, cell->x, cell->y, bpl);
 
 					spr_draw(&player.spr, x - xscroll, y - yscroll, player.dir);
-
-					if(player.beam.nseg) {
-						grid_to_vscr(player.beam.x1, player.beam.y1, &x, &y);
-						tiles_blit_rle(balltile, x - xscroll, y - yscroll, bpl);
-					}
 				}
 			}
 		}
 	}
 
-	/* mouseover highlight */
-	/*vscr_to_cell(mouse_x + xscroll, mouse_y + yscroll, &mouse_cx, &mouse_cy);
-	if(BOUNDCHK(mouse_cx, lvl.size) && BOUNDCHK(mouse_cy, lvl.size)) {
-		cell_to_vscr(mouse_cx, mouse_cy, &x, &y);
-		x -= xscroll;
-		y -= yscroll;
-		tiles_blit_rle(seltile, x, y, bpl);
-	}
-	*/
+	/*for(i=0; i<4; i++) {
+		int yoffs = i * 8;
+		draw_line(100 + i, 100 + yoffs, 140 + i, 180 + yoffs, 0xff);
+	}*/
+
 	vscr_to_grid(mouse_x + xscroll, mouse_y + yscroll, &mouse_gx, &mouse_gy);
 	mouse_gx -= 128;
 	mouse_gy -= 128;
@@ -362,11 +368,8 @@ static void draw_bitplane(int bpl)
 	tiles_blit_rle(cursors[mouse_mode], mouse_x, mouse_y, bpl);
 
 	gprintf(0, 0, fps_text);
-	/*gprintf(0, 8, "vsync: %s", vsync ? "on" : "off");*/
 	gprintf(90, 0, "vis:%d", num_vis);
 	gprintf(160, 0, "cell:%d,%d %s", player_cx, player_cy, strcellflags(player.cell->flags));
-	/*gprintf(0, 8, "player: %s,%s\n", fixpstr(player.x, 8), fixpstr(player.y, 8));
-	gprintf(180, 8, "mouse: %s,%s\n", fixpstr(mouse_gx, 8), fixpstr(mouse_gy, 8));*/
 }
 
 static void scrgame_keyb(int key, int press)
@@ -393,34 +396,18 @@ static void scrgame_keyb(int key, int press)
 
 static void scrgame_mouse(int bn, int press, int x, int y)
 {
-	int cx, cy, gx, gy;
-
 	prev_mx = x;
 	prev_my = y;
 
-
-	if(press) {
-		if(bn == 0) {
-			vscr_to_cell(mouse_x + xscroll, mouse_y + yscroll, &cx, &cy);
-
-			vscr_to_grid(mouse_x + xscroll, mouse_y + yscroll, &gx, &gy);
-			gx -= 128;
-			gy -= 128;
-			mob_lookat(&player, gx, gy);
-			mob_state(&player, MOB_FIRE);
-
-			mob_beam(&player, gx, gy, BEAM_DMG);
-		}
-	} else {
-		if(bn == 0) {
-			mob_state(&player, MOB_IDLE);
-		}
+	if(bn == 0 && press) {
+		mob_state(&player, MOB_FIRE);
 	}
 }
 
 static void scrgame_motion(int x, int y)
 {
-	int dx, dy, gx, gy;
+	int dx, dy;
+	int32_t gx, gy;
 
 	dx = mouse_x - prev_mx;
 	dy = mouse_y - prev_my;
