@@ -105,6 +105,7 @@ static int scrgame_init(void)
 	init_mob(&player);
 	define_spranim(&tileset, player.spr.anim + MOB_IDLE, 1, 0, 256, 32, 32);
 	define_spranim(&tileset, player.spr.anim + MOB_WALK, 8, 32, 256, 32, 32);
+	define_spranim(&tileset, player.spr.anim + MOB_FIRE, 1, 288, 256, 32, 32);
 	spr_origin(&player.spr, 16, 28);
 
 	memset(&sprmob, 0, sizeof sprmob);
