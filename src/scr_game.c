@@ -10,6 +10,7 @@
 #include "mob.h"
 #include "options.h"
 #include "dynarr.h"
+#include "psys.h"
 
 #define BEAM_DMG	8
 #define BEAM_COL	253
@@ -48,6 +49,7 @@ static int text_color = 0xff;
 static struct mob player;
 
 static int dbg_hide_walls;
+static struct psys psys;
 
 
 #ifdef DRAW_FULL
@@ -113,7 +115,6 @@ static int scrgame_init(void)
 	for(i=0; i<dynarr_size(lvl.mobs); i++) {
 		lvl.mobs[i]->spr = sprmob;
 	}
-
 	return 0;
 }
 
@@ -164,6 +165,18 @@ static int scrgame_start(void)
 		mob_state(lvl.mobs[i], MOB_IDLE);
 	}
 
+	vga_setpal(220, 255, 245, 10);
+	vga_setpal(221, 255, 180, 15);
+	vga_setpal(222, 255, 64, 20);
+	vga_setpal(223, 160, 40, 10);
+	vga_setpal(224, 64, 8, 8);
+
+	psys_init(&psys);
+	psys.rad = 0x200;
+	psys.grav = 0x800;
+	psys.colramp[0] = 220;
+	psys.colramp[1] = 225;
+
 #ifndef NO_SOUND
 	if(mus) {
 		au_play_music(mus);
@@ -185,6 +198,8 @@ static void scrgame_stop(void)
 	}
 #endif
 	vga_setpitch(80);
+
+	psys_destroy(&psys);
 }
 
 #define SCROLL_SPEED	1
@@ -262,6 +277,8 @@ static void update(void)
 			cell++;
 		}
 	}
+
+	psys_update(&psys, dt);
 }
 
 static char fps_text[32];
@@ -360,6 +377,8 @@ static void draw_bitplane(int bpl)
 		int yoffs = i * 8;
 		draw_line(100 + i, 100 + yoffs, 140 + i, 180 + yoffs, 0xff);
 	}*/
+
+	psys_draw(&psys);
 
 	vscr_to_grid(mouse_x + xscroll, mouse_y + yscroll, &mouse_gx, &mouse_gy);
 	mouse_gx -= 128;

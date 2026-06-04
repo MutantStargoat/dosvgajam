@@ -35,6 +35,7 @@ enum {
 #define CELL_EXIT(dir)		(CELL_EXIT_N << (dir))
 
 struct mob;
+struct psys;
 
 struct level_cell {
 	int cx, cy;				/* cell coordinates */
@@ -44,8 +45,7 @@ struct level_cell {
 
 	struct mob *mobs;			/* linked list */
 	struct beamseg *beamsegs;	/* linked list */
-
-	struct level_cell *dirty_next;
+	struct psys *psys;			/* linked list */
 };
 
 struct level {
@@ -87,6 +87,9 @@ int gridvec_to_dir8(int32_t dx, int32_t dy);
 
 void cell_add_beamseg(struct level_cell *cell, struct beamseg *bs);
 int cell_remove_beamseg(struct level_cell *cell, struct beamseg *bs);
+
+void cell_add_psys(struct level_cell *cell, struct psys *ps);
+int cell_remove_psys(struct level_cell *cell, struct psys *ps);
 
 /* implicit in these conversions is the tile size: 64x32 */
 static INLINE void vscr_to_grid(int sx, int sy, int32_t *gridx, int32_t *gridy)

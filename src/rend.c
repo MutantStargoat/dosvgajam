@@ -56,7 +56,7 @@ static int outcode(int x, int y, int xmin, int ymin, int xmax, int ymax)
 int clip_line(int *x0, int *y0, int *x1, int *y1, int xmin, int ymin, int xmax, int ymax)
 {
 	int oc_out, oc0, oc1;
-	int32_t fx0, fy0, fx1, fy1, fxmin, fymin, fxmax, fymax, a, b;
+	int32_t fx0, fy0, fx1, fy1, fxmin, fymin, fxmax, fymax;
 
 	oc0 = outcode(*x0, *y0, xmin, ymin, xmax, ymax);
 	oc1 = outcode(*x1, *y1, xmin, ymin, xmax, ymax);

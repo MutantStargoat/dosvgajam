@@ -5,6 +5,7 @@
 #include "util.h"
 #include "dynarr.h"
 #include "mob.h"
+#include "psys.h"
 
 struct tileset tileset;
 
@@ -195,4 +196,28 @@ int cell_remove_beamseg(struct level_cell *cell, struct beamseg *bs)
 	bs->next = 0;
 	bs->cell = 0;
 	return found;
+}
+
+void cell_add_psys(struct level_cell *cell, struct psys *ps)
+{
+	ps->next = cell->psys;
+	cell->psys = ps;
+}
+
+int cell_remove_psys(struct level_cell *cell, struct psys *ps)
+{
+	struct psys dummy, *prev;
+
+	dummy.next = cell->psys;
+	prev = &dummy;
+	while(prev->next) {
+		if(prev->next == ps) {
+			prev->next = ps->next;
+			ps->next = 0;
+			cell->psys = dummy.next;
+			return 1;
+		}
+		prev = prev->next;
+	}
+	return 0;
 }
