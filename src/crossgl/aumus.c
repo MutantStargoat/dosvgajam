@@ -7,13 +7,12 @@ struct au_music {
 
 static struct au_music *cur_mus;
 
-
-int au_init(void)
+int au_music_init(void)
 {
 	return 0;
 }
 
-void au_shutdown(void)
+void au_music_shutdown(void)
 {
 }
 
@@ -48,7 +47,14 @@ struct au_music *au_music_playing(void)
 	return cur_mus;
 }
 
+static int musvol;
 
 void au_music_volume(int vol)
 {
+	musvol = vol;
+}
+
+int au_music_getvolume(void)
+{
+	return musvol;
 }
