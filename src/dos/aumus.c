@@ -17,7 +17,7 @@ static struct au_music *cur_mus;
 static int volume;
 
 
-int au_init(void)
+int au_music_init(void)
 {
 	unsigned short port = -1, sbport = 0x220, mpu401port = 0x330;
 	const char *bankfile = 0;
@@ -88,7 +88,7 @@ int au_init(void)
 	return 0;
 }
 
-void au_shutdown(void)
+void au_music_shutdown(void)
 {
 	MLshutdownTimer();
 	MLdeinit();
@@ -170,5 +170,10 @@ void au_music_volume(int vol)
 	if(cur_mus) {
 		MLsetVolume(cur_mus->handle, vol);
 	}
+}
+
+int au_music_getvolume(void)
+{
+	return volume;
 }
 #endif

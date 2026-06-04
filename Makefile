@@ -1,22 +1,24 @@
 !ifdef __UNIX__
 dosobj = src/dos/main.obj src/dos/vga.obj src/dos/keyb.obj src/dos/mouse.obj &
-	src/dos/timer.obj src/dos/logger.obj src/dos/vgamisc.obj src/dos/audio.obj
+	src/dos/timer.obj src/dos/logger.obj src/dos/vgamisc.obj src/dos/aumus.obj &
+	src/dos/au_sb.obj src/dos/dma.obj src/dos/dpmi.obj
 appobj = src/app.obj src/options.obj src/treestor.obj src/ts_text.obj &
 	src/dynarr.obj src/util.obj src/scr_menu.obj src/scr_game.obj src/lut.obj &
 	src/xmath.obj src/xmath_s.obj src/image.obj src/tiles.obj src/level.obj &
 	src/rend.obj src/json.obj src/tiledfmt.obj src/mob.obj src/sprite.obj &
-	src/psys.obj
+	src/psys.obj src/audio.obj src/aufile.obj src/auwav.obj
 g3dobj = src/g3d/g3d.obj src/g3d/polyfill.obj
 
 incpath = -Isrc -Isrc/dos -Ilibs -Ilibs/imago/src
 !else
 dosobj = src\dos\main.obj src\dos\vga.obj src\dos\keyb.obj src\dos\mouse.obj &
-	src\dos\timer.obj src\dos\logger.obj src\dos\vgamisc.obj src\dos\audio.obj
+	src\dos\timer.obj src\dos\logger.obj src\dos\vgamisc.obj src\dos\aumus.obj &
+	src\dos\au_sb.obj src\dos\dma.obj src\dos\dpmi.obj
 appobj = src\app.obj src\options.obj src\treestor.obj src\ts_text.obj &
 	src\dynarr.obj src\util.obj src\scr_menu.obj src\scr_game.obj src\lut.obj &
 	src\xmath.obj src\xmath_s.obj src\image.obj src\tiles.obj src\level.obj &
 	src\rend.obj src\json.obj src\tiledfmt.obj src\mob.obj src\sprite.obj &
-	src\psys.obj
+	src\psys.obj src\audio.obj src\aufile.obj src\auwav.obj
 g3dobj = src\g3d\g3d.obj src\g3d\polyfill.obj
 
 incpath = -Isrc -Isrc\dos -Ilibs -Ilibs\imago\src
