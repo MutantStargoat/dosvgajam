@@ -4,8 +4,6 @@
 #include "options.h"
 #include "treestor.h"
 
-#define DEF_XRES		640
-#define DEF_YRES		480
 #define DEF_VSYNC		1
 #define DEF_VOL			255
 #define DEF_MUS			1
@@ -17,7 +15,6 @@
 
 
 struct options opt = {
-	DEF_XRES, DEF_YRES,
 	DEF_VSYNC,
 	DEF_FULLSCR,
 	DEF_SCALE, DEF_SCALER,
@@ -37,8 +34,6 @@ int load_options(const char *fname)
 	}
 	printf("loaded config: %s\n", fname);
 
-	opt.xres = ts_lookup_int(cfg, "options.video.xres", DEF_XRES);
-	opt.yres = ts_lookup_int(cfg, "options.video.yres", DEF_YRES);
 	opt.vsync = ts_lookup_int(cfg, "options.video.vsync", DEF_VSYNC);
 	opt.fullscreen = ts_lookup_int(cfg, "options.video.fullscreen", DEF_FULLSCR);
 	opt.scale = ts_lookup_int(cfg, "options.video.scale", DEF_SCALE);
@@ -75,8 +70,6 @@ int save_options(const char *fname)
 	}
 	fprintf(fp, "options {\n");
 	fprintf(fp, "\tvideo {\n");
-	WROPT(2, "xres = %d", opt.xres, DEF_XRES);
-	WROPT(2, "yres = %d", opt.yres, DEF_YRES);
 	WROPT(2, "vsync = %d", opt.vsync, DEF_VSYNC);
 	WROPT(2, "fullscreen = %d", opt.fullscreen, DEF_FULLSCR);
 	WROPT(2, "scale = %d", opt.scale, DEF_SCALE);

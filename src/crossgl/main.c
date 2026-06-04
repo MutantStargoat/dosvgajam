@@ -11,6 +11,7 @@
 #include "timer.h"
 #include "options.h"
 
+static void cleanup(void);
 static void display(void);
 static void idle(void);
 static void reshape(int x, int y);
@@ -34,6 +35,8 @@ float win_aspect;
 
 int main(int argc, char **argv)
 {
+	load_options("game.cfg");
+
 	glutInit(&argc, argv);
 
 	/* constrain default scale factor on low-res */
@@ -79,7 +82,7 @@ int main(int argc, char **argv)
 	if(app_init() == -1) {
 		return 1;
 	}
-	atexit(app_shutdown);
+	atexit(cleanup);
 
 	glutMainLoop();
 	return 0;
@@ -149,6 +152,12 @@ void sleep_msec(unsigned long msec)
 void app_abort(void)
 {
 	abort();
+}
+
+
+static void cleanup(void)
+{
+	save_options("game.cfg");
 }
 
 static void display(void)

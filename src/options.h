@@ -9,7 +9,6 @@ enum {
 };
 
 struct options {
-	int xres, yres;
 	int vsync;
 	int fullscreen;
 	int scale, scaler;
