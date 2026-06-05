@@ -21,6 +21,15 @@ void au_shutdown(void);
 struct au_sample *au_load_sample(const char *fname);
 void au_free_sample(struct au_sample *samp);
 
+int au_start_player(int rate, int bits, int nchan);
+void au_stop_player(void);
+
+/* returns playback track number, or -1 on failure */
+int au_play_sample(struct au_sample *samp);
+void au_stop_sample(struct au_sample *samp);
+/* returns number of active samples */
+int au_sample_playing(void);
+
 void au_pcm_play(int rate, int bits, int nchan);
 void au_pcm_pause(void);
 void au_pcm_resume(void);
