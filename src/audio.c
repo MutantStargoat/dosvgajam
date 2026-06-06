@@ -5,6 +5,13 @@
 #include "audrv.h"
 #include "aufile.h"
 
+#ifdef MSDOS
+#include <dos.h>
+#else
+#define _enable()
+#define _disable()
+#endif
+
 #define NUM_TRACKS	4
 
 struct au_sample {
@@ -207,7 +214,6 @@ notrk:	memset(buf, 0x80, size);
 		ntracks--;
 	}
 
-#if 0
 	/* rest of the tracks, add them up */
 	while(++trk < track + NUM_TRACKS) {
 		if(!trk->samp) continue;
@@ -225,7 +231,6 @@ notrk:	memset(buf, 0x80, size);
 			ntracks--;
 		}
 	}
-#endif
 	return size;
 }
 
@@ -274,8 +279,10 @@ int au_play_sample(struct au_sample *samp)
 	int i;
 	struct track *trk;
 
+	_disable();
+
 	if(ntracks >= NUM_TRACKS) {
-		return -1;
+		goto err;
 	}
 
 	for(i=0; i<NUM_TRACKS; i++) {
@@ -284,10 +291,13 @@ int au_play_sample(struct au_sample *samp)
 			trk->samp = samp;
 			trk->offs = 0;
 			ntracks++;
+			_enable();
 			return 0;
 		}
 	}
 
+err:
+	_enable();
 	return -1;
 }
 
@@ -295,12 +305,16 @@ void au_stop_sample(struct au_sample *samp)
 {
 	int i;
 
+	_disable();
+
 	for(i=0; i<NUM_TRACKS; i++) {
 		if(track[i].samp == samp) {
 			track[i].samp = 0;
 			ntracks--;
 		}
 	}
+
+	_enable();
 }
 
 int au_sample_playing(void)
