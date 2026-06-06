@@ -51,6 +51,8 @@ static struct mob player;
 static int dbg_hide_walls;
 static struct psys psys;
 
+static struct au_sample *sfx_laser;
+
 
 #ifdef DRAW_FULL
 #define MAX_VIS_CELLS	8192
@@ -116,12 +118,22 @@ static int scrgame_init(void)
 	for(i=0; i<dynarr_size(lvl.mobs); i++) {
 		lvl.mobs[i]->spr = sprmob;
 	}
+
+#ifndef NO_SOUND
+	if(!(sfx_laser = au_load_sample("data/sfx/laser4.wav"))) {
+		return -1;
+	}
+#endif
 	return 0;
 }
 
 static void scrgame_destroy(void)
 {
 	destroy_level(&lvl);
+#ifndef NO_SOUND
+	au_stop_sample(sfx_laser);
+	au_free_sample(sfx_laser);
+#endif
 }
 
 static int scrgame_start(void)
@@ -239,6 +251,9 @@ static void update(void)
 			mob_lookat(&player, gx, gy);
 			mob_beam(&player, gx, gy, BEAM_DMG);
 
+#ifndef NO_SOUND
+			au_play_sample(sfx_laser);
+#endif
 		} else if(player.state_t >= BEAM_DUR) {
 
 			/* fire duration ended, change state and remove beam */

@@ -35,6 +35,7 @@ struct au_file *au_open(const char *fname)
 
 void au_close(struct au_file *au)
 {
+	if(!au) return;
 	au->close(au);
 	fclose(au->fp);
 	free(au);

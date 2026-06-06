@@ -1,7 +1,7 @@
 #ifndef DMA_H_
 #define DMA_H_
 
-#include <inttypes.h>
+#include <szint.h>
 
 enum {
 	DMA_SINGLE	= 0x01,

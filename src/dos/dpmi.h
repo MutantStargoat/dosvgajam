@@ -1,7 +1,7 @@
 #ifndef DPMI_H_
 #define DPMI_H_
 
-#include "inttypes.h"
+#include "szint.h"
 
 struct dpmi_real_regs {
 	uint32_t edi, esi, ebp;

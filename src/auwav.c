@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "aufile.h"
 #include "szint.h"
 
@@ -51,10 +52,18 @@ int au_open_wav(struct au_file *au)
 		return -1;
 	if(read_format(&fmt, len, au->fp) == -1)
 		return -1;
-	if(read_uint32(&id, au->fp) == -1 || id != ID_DATA)
-		return -1;
-	if(read_uint32(&len, au->fp) == -1)
-		return -1;
+
+	/* skip any metadata chunks */
+	for(;;) {
+		if(read_uint32(&id, au->fp) == -1) {
+search_eof:	fprintf(stderr, "au_open_wav: unexpected EOF while looking for data block\n");
+			return -1;
+		}
+		if(read_uint32(&len, au->fp) == -1) goto search_eof;
+		if(id == ID_DATA) break;	/* found it, bail */
+		/* not found, skip this chunk */
+		fseek(au->fp, len, SEEK_CUR);
+	}
 
 	if(!(pb = malloc(sizeof *pb))) {
 		fprintf(stderr, "failed to allocate wav playback data block\n");
@@ -133,8 +142,21 @@ static int read_uint32(uint32_t *res, FILE *fp)
 
 static int read_format(struct format *fmt, int fmtsize, FILE *fp)
 {
-	if(fread(fmt, 1, fmtsize, fp) < fmtsize) {
-		return -1;
+	char *buf;
+
+	if(fmtsize > sizeof *fmt) {
+		if(!(buf = malloc(fmtsize))) {
+			return -1;
+		}
+		if(fread(buf, 1, fmtsize, fp) < fmtsize) {
+			return -1;
+		}
+		memcpy(fmt, buf, sizeof *fmt);
+		free(buf);
+	} else {
+		if(fread(fmt, 1, fmtsize, fp) < fmtsize) {
+			return -1;
+		}
 	}
 #ifdef BIGENDIAN
 	swap_uint16(&fmt->fmt);

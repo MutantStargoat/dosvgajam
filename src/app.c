@@ -57,6 +57,7 @@ int app_init(void)
 	if(au_init() == -1) {
 		return -1;
 	}
+	au_start_player(22050, 8, 1);
 #endif
 
 	time_msec = get_msec();
@@ -79,6 +80,7 @@ void app_shutdown(void)
 	int i;
 
 #ifndef NO_SOUND
+	au_stop_player();
 	au_shutdown();
 #endif
 

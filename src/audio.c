@@ -18,7 +18,8 @@ struct track {
 	unsigned long offs;
 };
 
-static int trk_bits, trk_chan, ntracks;
+static int trk_bits, trk_chan;
+static volatile int ntracks;
 static struct track track[NUM_TRACKS];
 
 static struct audrv drv;
@@ -175,12 +176,12 @@ void au_free_sample(struct au_sample *samp)
 
 static int pcmplay_b8m(void *buf, int size, void *cls)
 {
-	int i, minsz;
+	int i, minsz, sampsz;
 	struct track *trk = 0;
 	unsigned char *src, *dst = buf;
 
 	if(!ntracks) {
-		memset(buf, 0, size);
+notrk:	memset(buf, 0x80, size);
 		return size;
 	}
 
@@ -191,19 +192,28 @@ static int pcmplay_b8m(void *buf, int size, void *cls)
 			break;
 		}
 	}
-	minsz = size < trk->samp->size ? size : trk->samp->size;
-	memcpy(buf, (unsigned char*)trk->samp->samples + trk->offs, minsz);
+
+	if(!trk) goto notrk;
+
+	sampsz = trk->samp->size - trk->offs;
+	minsz = size <= sampsz ? size : sampsz;
+	memcpy(dst, (char*)trk->samp->samples + trk->offs, minsz);
+	if(minsz < size) {
+		memset(dst + minsz, 0x80, size - minsz);
+	}
 	trk->offs += minsz;
 	if(trk->offs >= trk->samp->size) {
 		trk->samp = 0;	/* sample finished, release the track */
 		ntracks--;
 	}
 
+#if 0
 	/* rest of the tracks, add them up */
 	while(++trk < track + NUM_TRACKS) {
 		if(!trk->samp) continue;
 
-		minsz = size < trk->samp->size ? size : trk->samp->size;
+		sampsz = trk->samp->size - trk->offs;
+		minsz = size <= sampsz ? size : sampsz;
 		src = (unsigned char*)trk->samp->samples + trk->offs;
 		for(i=0; i<minsz; i++) {
 			int val = (int)dst[i] - 128;
@@ -215,6 +225,8 @@ static int pcmplay_b8m(void *buf, int size, void *cls)
 			ntracks--;
 		}
 	}
+#endif
+	return size;
 }
 
 int au_start_player(int rate, int bits, int nchan)
@@ -255,6 +267,45 @@ void au_stop_player(void)
 {
 	au_pcm_stop();
 	trk_bits = trk_chan = 0;
+}
+
+int au_play_sample(struct au_sample *samp)
+{
+	int i;
+	struct track *trk;
+
+	if(ntracks >= NUM_TRACKS) {
+		return -1;
+	}
+
+	for(i=0; i<NUM_TRACKS; i++) {
+		if(!track[i].samp) {
+			trk = track + i;
+			trk->samp = samp;
+			trk->offs = 0;
+			ntracks++;
+			return 0;
+		}
+	}
+
+	return -1;
+}
+
+void au_stop_sample(struct au_sample *samp)
+{
+	int i;
+
+	for(i=0; i<NUM_TRACKS; i++) {
+		if(track[i].samp == samp) {
+			track[i].samp = 0;
+			ntracks--;
+		}
+	}
+}
+
+int au_sample_playing(void)
+{
+	return ntracks;
 }
 
 /* dummy PCM driver */

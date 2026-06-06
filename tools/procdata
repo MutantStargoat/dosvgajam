@@ -58,3 +58,11 @@ copy datasrc/testlvl/tiles.png data
 # copy music
 copy datasrc/music/test.mus data/music
 copy datasrc/genmidi.op2 data/music
+
+#copy sound effects
+mkdir -p data/sfx
+src=datasrc/sfx/laser4.wav
+dest=data/sfx/laser4.wav
+if $force || [ ! -e $dest -o $src -nt $dest ]; then
+	ffmpeg -i datasrc/sfx/laser4.wav -ar 22050 -acodec pcm_u8 -ac 1 -t 800ms -y data/sfx/laser4.wav
+fi
