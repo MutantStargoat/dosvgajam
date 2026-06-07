@@ -119,8 +119,17 @@ int clip_line(int *x0, int *y0, int *x1, int *y1, int xmin, int ymin, int xmax, 
 
 void draw_line(int x0, int y0, int x1, int y1, uint8_t color)
 {
-	int i, dx, dy, dx2, dy2, xinc, yinc, err;
+	int i, dx, dy, dx2, dy2, yinc, err;
 	uint8_t *vmem;
+
+	if(x0 > x1) {
+		i = x0;
+		x0 = x1;
+		x1 = i;
+		err = y0;
+		y0 = y1;
+		y1 = err;
+	}
 
 #ifdef VGA_LFB
 	if(cur_bpl) return;
@@ -133,12 +142,6 @@ void draw_line(int x0, int y0, int x1, int y1, uint8_t color)
 	dx = x1 - x0;
 	dy = y1 - y0;
 
-	if(dx >= 0) {
-		xinc = 1;
-	} else {
-		xinc = -1;
-		dx = -dx;
-	}
 	if(dy >= 0) {
 		yinc = SCANLEN;
 	} else {
@@ -165,12 +168,12 @@ void draw_line(int x0, int y0, int x1, int y1, uint8_t color)
 			}
 			err += dy2;
 #ifdef VGA_LFB
-			vmem += xinc;
+			vmem++;
 #else
 			if((x0 & 3) == 3) {
-				vmem += xinc;
+				vmem++;
 			}
-			x0 += xinc;
+			x0++;
 #endif
 		}
 	} else {
@@ -187,12 +190,12 @@ void draw_line(int x0, int y0, int x1, int y1, uint8_t color)
 			if(err >= 0) {
 				err -= dy2;
 #ifdef VGA_LFB
-				vmem += xinc;
+				vmem++;
 #else
 				if((x0 & 3) == 3) {
-					vmem += xinc;
+					vmem++;
 				}
-				x0 += xinc;
+				x0++;
 #endif
 			}
 			err += dx2;

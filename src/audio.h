@@ -30,6 +30,9 @@ void au_stop_sample(struct au_sample *samp);
 /* returns number of active samples */
 int au_sample_playing(void);
 
+void au_pcm_set_callback(au_pcm_callback_func func, void *cls);
+int au_pcm_callback(void *buf, int sz);
+
 void au_pcm_play(int rate, int bits, int nchan);
 void au_pcm_pause(void);
 void au_pcm_resume(void);

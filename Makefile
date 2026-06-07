@@ -42,7 +42,7 @@ LDFLAGS = option map library { $(libs) }
 $(bin): cflags.occ $(obj) $(libs)
 	%write objects.lnk $(obj)
 	%write ldflags.lnk $(LDFLAGS)
-	$(LD) debug all name $@ system dos4g file { @objects } @ldflags
+	$(LD) debug all name $@ system dos4g file { @objects.lnk } @ldflags.lnk
 
 .c: src;src/g3d;src/dos
 .asm: src;src/g3d;src/dos

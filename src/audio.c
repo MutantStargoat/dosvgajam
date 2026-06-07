@@ -58,6 +58,8 @@ static struct audrv drv_dummy = {
 
 int au_init(void)
 {
+	drv = drv_dummy;
+#ifndef NO_PCM
 	memset(track, 0, sizeof track);
 
 #ifdef MSDOS
@@ -68,6 +70,8 @@ int au_init(void)
 	drv = drv_dummy;
 
 musinit:
+#endif	/* not NO_PCM */
+
 	au_music_init();
 	return 0;
 }
@@ -93,8 +97,10 @@ int au_pcm_callback(void *buf, int sz)
 
 void au_pcm_play(int rate, int bits, int nchan)
 {
+#ifndef NO_PCM
 	printf("play %d samples/s, %d bits, %s\n", rate, bits, nchan == 1 ? "mono" : "stereo");
 	drv.start(rate, bits, nchan);
+#endif
 }
 
 void au_pcm_pause(void)
@@ -181,6 +187,7 @@ void au_free_sample(struct au_sample *samp)
 	free(samp);
 }
 
+#ifndef NO_PCM
 static int pcmplay_b8m(void *buf, int size, void *cls)
 {
 	int i, minsz, sampsz;
@@ -233,9 +240,11 @@ notrk:	memset(buf, 0x80, size);
 	}
 	return size;
 }
+#endif
 
 int au_start_player(int rate, int bits, int nchan)
 {
+#ifndef NO_PCM
 	if(trk_bits || trk_chan) return -1;
 	if(!bits || !nchan || !rate) return -1;
 
@@ -265,6 +274,7 @@ int au_start_player(int rate, int bits, int nchan)
 	}
 
 	au_pcm_play(rate, bits, nchan);
+#endif
 	return 0;
 }
 
@@ -276,6 +286,7 @@ void au_stop_player(void)
 
 int au_play_sample(struct au_sample *samp)
 {
+#ifndef NO_PCM
 	int i;
 	struct track *trk;
 
@@ -298,11 +309,13 @@ int au_play_sample(struct au_sample *samp)
 
 err:
 	_enable();
+#endif
 	return -1;
 }
 
 void au_stop_sample(struct au_sample *samp)
 {
+#ifndef NO_PCM
 	int i;
 
 	_disable();
@@ -315,6 +328,7 @@ void au_stop_sample(struct au_sample *samp)
 	}
 
 	_enable();
+#endif
 }
 
 int au_sample_playing(void)

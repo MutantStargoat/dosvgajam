@@ -1,18 +1,6 @@
 #ifndef SZINT_H_
 #define SZINT_H_
 
-#if defined(__DOS__) || defined(__MSDOS__)
-typedef char int8_t;
-typedef short int16_t;
-typedef long int32_t;
-
-typedef unsigned char uint8_t;
-typedef unsigned short uint16_t;
-typedef unsigned long uint32_t;
-
-typedef long intptr_t;
-typedef unsigned long uintptr_t;
-#else
 
 #ifdef _MSC_VER
 typedef __int8 int8_t;
@@ -33,15 +21,30 @@ typedef unsigned __int32 uintptr_t;
 #endif
 #else	/* not msvc */
 
-#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199900
+#if (defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199900) || \
+	(defined(__WATCOMC__) && __WATCOMC__ >= 1300)
 #include <stdint.h>
 #elif defined(__sgi)
 #include <sys/types.h>
 #else
+
+#if defined(__DOS__) || defined(__MSDOS__)
+typedef signed char int8_t;
+typedef short int16_t;
+typedef long int32_t;
+
+typedef unsigned char uint8_t;
+typedef unsigned short uint16_t;
+typedef unsigned long uint32_t;
+
+typedef long intptr_t;
+typedef unsigned long uintptr_t;
+#else
 #include <inttypes.h>
 #endif
 
+#endif
+
 #endif	/* end !msvc */
-#endif	/* end !dos */
 
 #endif	/* SZINT_H_ */

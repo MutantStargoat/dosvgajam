@@ -57,7 +57,9 @@ int app_init(void)
 	if(au_init() == -1) {
 		return -1;
 	}
+#ifndef NO_PCM
 	au_start_player(22050, 8, 1);
+#endif
 #endif
 
 	time_msec = get_msec();

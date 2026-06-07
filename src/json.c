@@ -3,6 +3,7 @@
 #include <string.h>
 #include <ctype.h>
 #include "dynarr.h"
+#include "util.h"
 
 #if defined(_WIN32) || defined(__WATCOMC__)
 #include <malloc.h>
