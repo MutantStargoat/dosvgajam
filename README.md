@@ -1,6 +1,10 @@
-Game for the VGA+Adlib jam
-==========================
-Not done yet, check back later.
+Infiltrator
+===========
+Infiltrator is an isometric action shooter game for DOS retro-PCs. It was made
+to enter the DOS VGA+Adlib jam: https://itch.io/jam/dos-vgaadlib-jam-2026-take-2
+
+Due to the unfinished placeholder main character sprite used for the Jam
+submission, the jam version is called "Silhouette Infiltrator".
 
 License
 -------
