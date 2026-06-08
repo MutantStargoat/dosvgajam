@@ -22,7 +22,7 @@ typedef unsigned __int32 uintptr_t;
 #else	/* not msvc */
 
 #if (defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199900) || \
-	(defined(__WATCOMC__) && __WATCOMC__ >= 1300)
+	(defined(__WATCOMC__) && __WATCOMC__ >= 1200)
 #include <stdint.h>
 #elif defined(__sgi)
 #include <sys/types.h>
