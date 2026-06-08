@@ -224,6 +224,21 @@ int cell_remove_psys(struct level_cell *cell, struct psys *ps)
 	return 0;
 }
 
+void cell_spawn_psys(struct level_cell *cell, int32_t x, int32_t y, int32_t dx,
+		int32_t dy, struct psys *templ)
+{
+	struct psys *ps;
+
+	ps = malloc_nf(sizeof *ps);
+	*ps = *templ;
+	grid_to_vscr(x, y, &ps->x, &ps->y);
+	ps->y -= 16;
+
+	ps->dirx = dx;
+	ps->diry = dy;
+
+	psys_add_emitter(&cell->psys, ps);
+}
 
 struct mob *raycast(struct level *lvl, int32_t x, int32_t y, int32_t dx, int32_t dy, struct mob *ignmob)
 {

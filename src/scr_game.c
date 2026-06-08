@@ -35,12 +35,12 @@ static struct au_music *mus;
 #define ROW_SIZE		(CELL_YSZ >> 1)
 
 struct mob player;
+int xscroll, yscroll;
 
 static int vsync;
 static int prev_mx, prev_my;
 
 static struct level lvl;
-static int xscroll, yscroll;
 
 struct tileimg *seltile, *cursors[2], *balltile;
 static int mouse_mode;
@@ -53,6 +53,8 @@ static int text_color = 0xff;
 static int dbg_hide_walls;
 
 static struct au_sample *sfx_laser;
+
+static int game_state, mobs_rem;
 
 
 #ifdef DRAW_FULL
@@ -183,6 +185,9 @@ static int scrgame_start(void)
 		mob_state(lvl.mobs[i], MOB_IDLE);
 	}
 
+	game_state = 0;
+	mobs_rem = dynarr_size(lvl.mobs);
+
 #ifndef NO_SOUND
 	if(mus) {
 		au_play_music(mus);
@@ -211,8 +216,8 @@ static void update(void)
 {
 	static long prev_upd;
 	long dt;
-	int i, j, x, y, dx, dy;
-	int32_t gx, gy;
+	int i, j, x, y, dx, dy, cx, cy;
+	int32_t gx, gy, dirx, diry;
 	struct level_cell *cell;
 	struct mob *mob;
 
@@ -242,7 +247,10 @@ static void update(void)
 		mob_state(&player, MOB_DEAD);
 	}
 
-	if(player.state == MOB_DEAD) goto skip_player;
+	if(player.state == MOB_DEAD) {
+		game_state = -1;
+		goto skip_player;
+	}
 
 	if(player.state == MOB_FIRE) {
 		if(player.state_t == 0) {
@@ -255,6 +263,30 @@ static void update(void)
 #ifndef NO_SOUND
 			au_play_sample(sfx_laser);
 #endif
+			/* poor man's normalize */
+			if(player.beam.nseg > 0) {
+				gx = player.beam.x1;
+				gy = player.beam.y1;
+				dirx = player.x - gx;
+				diry = player.y - gy;
+
+				if(dirx > 0) {
+					dirx = 0x800;
+				} else if(dirx < 0) {
+					dirx = -0x800;
+				}
+				if(diry > 0) {
+					diry = 0x800;
+				} else if(diry < 0) {
+					diry = -0x800;
+				}
+
+				grid_to_cell(gx, gy, &cx, &cy);
+				if((cell = get_level_cell(&lvl, cx, cy))) {
+					cell_spawn_psys(cell, gx, gy, dirx, diry, &psys_blasthit);
+				}
+			}
+
 		} else if(player.state_t >= BEAM_DUR) {
 
 			/* fire duration ended, change state and remove beam */
@@ -274,11 +306,17 @@ skip_player:
 	/* apply damage to mobs */
 	for(i=0; i<dynarr_size(lvl.mobs); i++) {
 		mob = lvl.mobs[i];
+		if(mob->state == MOB_DEAD) continue;
+
 		mob->hp -= mob->dmg;
 		mob->dmg = 0;
 		if(mob->hp <= 0) {
 			mob->hp = 0;
 			mob_state(mob, MOB_DEAD);
+
+			if(--mobs_rem <= 0) {
+				game_state = 1;		/* victory */
+			}
 		}
 	}
 
@@ -346,9 +384,7 @@ static void scrgame_display(void)
 
 	update();
 
-#ifdef VGA_LFB
 	vga_clearfb(0);
-#endif
 
 	for(i=0; i<4; i++) {
 		vga_planemask(1 << i);
@@ -365,6 +401,7 @@ static void draw_bitplane(int bpl)
 	struct level_cell *cell;
 	struct beamseg *bseg;
 	struct mob *mob;
+	struct psys *ps;
 
 	cur_bpl = bpl;
 
@@ -380,7 +417,6 @@ static void draw_bitplane(int bpl)
 				draw_level_cell(&lvl, cell, i, cell->x, cell->y);
 			}
 
-			/* draw mobs */
 			if(i == 1) {
 				bseg = cell->beamsegs;
 				while(bseg) {
@@ -390,20 +426,22 @@ static void draw_bitplane(int bpl)
 					y -= yscroll + BEAM_HEIGHT;
 					x1 -= xscroll;
 					y1 -= yscroll + BEAM_HEIGHT;
-					clip_line(&x, &y, &x1, &y1, 1, 1, FB_WIDTH - 2, FB_HEIGHT - 2);
-					draw_line(x, y, x1, y1, BEAM_COL + 1);
+					if(clip_line(&x, &y, &x1, &y1, 1, 1, FB_WIDTH - 2, FB_HEIGHT - 2)) {
+						draw_line(x, y, x1, y1, BEAM_COL + 1);
 
-					if(abs(x1 - x) > abs(y1 - y)) {
-						draw_line(x, y - 1, x1, y1 - 1, BEAM_COL);
-						draw_line(x, y + 1, x1, y1 + 1, BEAM_COL);
-					} else {
-						draw_line(x - 1, y, x1 - 1, y1, BEAM_COL);
-						draw_line(x + 1, y, x1 + 1, y1, BEAM_COL);
+						if(abs(x1 - x) > abs(y1 - y)) {
+							draw_line(x, y - 1, x1, y1 - 1, BEAM_COL);
+							draw_line(x, y + 1, x1, y1 + 1, BEAM_COL);
+						} else {
+							draw_line(x - 1, y, x1 - 1, y1, BEAM_COL);
+							draw_line(x + 1, y, x1 + 1, y1, BEAM_COL);
+						}
 					}
 
 					bseg = bseg->next;
 				}
 
+				/* draw mobs */
 				mob = cell->mobs;
 				while(mob) {
 					grid_to_vscr(mob->x, mob->y, &x, &y);
@@ -419,6 +457,13 @@ static void draw_bitplane(int bpl)
 
 					spr_draw(&player.spr, x - xscroll, y - yscroll, player.dir);
 				}
+
+				/* draw particles */
+				ps = cell->psys;
+				while(ps) {
+					psys_draw(ps);
+					ps = ps->next;
+				}
 			}
 		}
 	}
@@ -430,6 +475,7 @@ static void draw_bitplane(int bpl)
 	{
 		vga_rect_outline(vga_backbuf, 23, 1, 68, 16, 255);
 		vga_fillrect(vga_backbuf, 25, 3, player.hp >> 2, 12, RED_COL);
+		vga_planemask(1 << bpl);
 	}
 	gprintf(5, 5, "HP %3d/256", player.hp);
 
@@ -443,6 +489,15 @@ static void draw_bitplane(int bpl)
 		gprintf(160, 0, fps_text);
 		gprintf(260, 0, "vis:%d", num_vis);
 		gprintf(160, 10, "cell:%d,%d %s", player_cx, player_cy, strcellflags(player.cell->flags));
+	}
+
+	if(game_state) {
+		text_color = 0;
+		gprintf(120, 160, game_state > 0 ? " Victory! " : "Game Over!");
+		text_color = game_state > 0 ? 0xff : RED_COL;
+		gprintf(119, 159, game_state > 0 ? " Victory! " : "Game Over!");
+		text_color = 0xff;
+		gprintf(98, 180, "Hit ESC to exit");
 	}
 }
 

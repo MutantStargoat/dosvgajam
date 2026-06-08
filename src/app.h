@@ -67,6 +67,7 @@ extern struct tileimg *tile_inval;	/* invalid tile */
 extern int cur_bpl;
 
 extern struct mob player;
+extern int xscroll, yscroll;
 
 extern int showdbg;
 

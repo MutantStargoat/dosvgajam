@@ -86,6 +86,8 @@ int cell_remove_beamseg(struct level_cell *cell, struct beamseg *bs);
 
 void cell_add_psys(struct level_cell *cell, struct psys *ps);
 int cell_remove_psys(struct level_cell *cell, struct psys *ps);
+void cell_spawn_psys(struct level_cell *cell, int32_t x, int32_t y, int32_t dx,
+		int32_t dy, struct psys *templ);
 
 struct mob *raycast(struct level *lvl, int32_t x, int32_t y, int32_t dx, int32_t dy, struct mob *ignmob);
 

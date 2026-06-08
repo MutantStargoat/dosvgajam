@@ -65,7 +65,7 @@ void mob_state(struct mob *mob, int st);
 /* shoot a beam towards a target position, check against level cells, and break
  * it into beam segments, one per cell to be able to draw it correctly
  */
-void mob_beam(struct mob *mob, int32_t tx, int32_t ty, int dmg);
+struct mob *mob_beam(struct mob *mob, int32_t tx, int32_t ty, int dmg);
 void mob_beamstop(struct mob *mob);
 
 int32_t mob_rayhit(struct mob *mob, int32_t ox, int32_t oy, int32_t dx, int32_t dy,

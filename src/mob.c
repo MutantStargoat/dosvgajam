@@ -101,7 +101,7 @@ void mob_state(struct mob *mob, int st)
 	mob->spr.frm = 0;
 }
 
-void mob_beam(struct mob *mob, int32_t tx, int32_t ty, int dmg)
+struct mob *mob_beam(struct mob *mob, int32_t tx, int32_t ty, int dmg)
 {
 	int i, exit_dir;
 	int32_t hslope, vslope, dx, dy, x, y, nx, ny, rdx, rdy, hitx, hity;
@@ -133,6 +133,10 @@ void mob_beam(struct mob *mob, int32_t tx, int32_t ty, int dmg)
 		hit_dist = INT_MAX;
 		cellmob = cell->mobs;
 		while(cellmob) {
+			if(cellmob->state == MOB_DEAD) {
+				cellmob = cellmob->next;
+				continue;
+			}
 			if((t = mob_rayhit(cellmob, x, y, rdx, rdy, &hitx, &hity)) >= 0 && t < hit_dist) {
 				hitmob = cellmob;
 				hit_dist = t;
@@ -189,6 +193,7 @@ break_loop:
 
 	mob->beam.x1 = nx;
 	mob->beam.y1 = ny;
+	return hitmob;
 }
 
 void mob_beamstop(struct mob *mob)

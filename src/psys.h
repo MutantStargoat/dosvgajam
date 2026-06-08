@@ -43,5 +43,4 @@ void psys_upd_emitters(struct psys **pslist, long dt);
 struct particle *palloc(void);
 void pfree(struct particle *p);
 
-
 #endif	/* PSYS_H_ */

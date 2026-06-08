@@ -12,11 +12,14 @@ static struct color ramp_gun[] = {{255, 222, 166}, {192, 52, 38}, {67, 32, 32}};
 static struct color ramp_flame[] = {
 	{255, 245, 10}, {255, 180, 15}, {255, 64, 20}, {160, 40, 10}, {64, 8, 8}
 };
+static struct color ramp_blast[] = {{192, 192, 255}, {100, 100, 220}, {92, 92, 160}};
 
 #define CIDX_GUN0		200
 #define CIDX_GUN_LEN	(sizeof ramp_gun / sizeof *ramp_gun)
 #define CIDX_FLAME0		(CIDX_GUN0 + CIDX_GUN_LEN)
 #define CIDX_FLAME_LEN	(sizeof ramp_flame / sizeof *ramp_flame)
+#define CIDX_BLAST0		(CIDX_FLAME0 + CIDX_FLAME_LEN)
+#define CIDX_BLAST_LEN	(sizeof ramp_blast / sizeof *ramp_blast)
 
 #define MAX_PARTICLES	256
 static struct particle particles[MAX_PARTICLES];
@@ -34,19 +37,32 @@ void psys_init_prefabs(void)
 	for(i=0; i<CIDX_FLAME_LEN; i++) {
 		vga_setpal(-1, ramp_flame[i].r, ramp_flame[i].g, ramp_flame[i].b);
 	}
+	for(i=0; i<CIDX_BLAST_LEN; i++) {
+		vga_setpal(-1, ramp_blast[i].r, ramp_blast[i].g, ramp_blast[i].b);
+	}
 
 	psys_init(&psys_gunhit);
-	psys_gunhit.emlife = 512;
-	psys_gunhit.rad = 0x100;
-	psys_gunhit.grav = -0x800;
+	psys_gunhit.emlife = 400;
+	psys_gunhit.rad = 0x300;
+	psys_gunhit.grav = -0x500;
 	psys_gunhit.colramp[0] = CIDX_GUN0;
 	psys_gunhit.colramp[1] = CIDX_GUN0 + CIDX_GUN_LEN;
+	psys_gunhit.spawn_rate = 0x1000;
 
 	psys_init(&psys_flame);
 	psys_flame.rad = 0x200;
 	psys_flame.grav = 0x800;
 	psys_flame.colramp[0] = CIDX_FLAME0;
 	psys_flame.colramp[1] = CIDX_FLAME0 + CIDX_FLAME_LEN;
+
+
+	psys_init(&psys_blasthit);
+	psys_blasthit.emlife = 400;
+	psys_blasthit.rad = 0x300;
+	psys_blasthit.grav = -0x800;
+	psys_blasthit.colramp[0] = CIDX_BLAST0;
+	psys_blasthit.colramp[1] = CIDX_BLAST0 + CIDX_BLAST_LEN;
+	psys_blasthit.spawn_rate = 0x1800;
 
 }
 
@@ -85,7 +101,6 @@ int psys_update(struct psys *ps, long dt)
 		ps->emlife -= dt;
 		if(ps->emlife <= 0) {
 			ps->emlife = 0;
-			return 0;
 		}
 	}
 
@@ -117,6 +132,8 @@ int psys_update(struct psys *ps, long dt)
 	ps->plist = dummy.next;
 
 	/* spawn new particles */
+	if(ps->emlife == 0) return 1;
+
 	ps->spawn_acc += (ps->spawn_rate * dt) >> 10;
 	while(ps->spawn_acc >= 0x100) {
 		ps->spawn_acc -= 0x100;
@@ -136,7 +153,6 @@ int psys_update(struct psys *ps, long dt)
 		ps->plist = p;
 		ps->npart++;
 	}
-
 	return 1;
 }
 
@@ -151,16 +167,18 @@ void psys_draw(struct psys *ps)
 
 	p = ps->plist;
 	while(p) {
-		x = p->x >> 8;
-		y = p->y >> 8;
+		x = (p->x >> 8) - xscroll;
+		y = (p->y >> 8) - yscroll;
 
+		if(BOUNDCHK(x, FB_WIDTH) && BOUNDCHK(y, FB_HEIGHT)) {
 #ifdef VGA_LFB
-		vga_backbuf[y * SCANLEN + x] = p->color;
+			vga_backbuf[y * SCANLEN + x] = p->color;
 #else
-		if((x & 3) == cur_bpl) {
-			vga_backbuf[y * SCANLEN + (x >> 2)] = p->color;
-		}
+			if((x & 3) == cur_bpl) {
+				vga_backbuf[y * SCANLEN + (x >> 2)] = p->color;
+			}
 #endif
+		}
 		p = p->next;
 	}
 }
@@ -179,8 +197,6 @@ void psys_upd_emitters(struct psys **pslist, long dt)
 	dummy.next = *pslist;
 	psprev = &dummy;
 	while((ps = psprev->next)) {
-		printf("update psys with life: %ld\n", ps->emlife);
-
 		psys_update(ps, dt);
 
 		if(!ps->emlife && !ps->npart) {

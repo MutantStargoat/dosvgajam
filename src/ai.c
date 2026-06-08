@@ -4,7 +4,7 @@
 #include "util.h"
 #include "psys.h"
 
-#define GUARD_DMG	16
+#define GUARD_DMG	8
 #define GUARD_FIRE_DELAY	800
 
 static void spawn_bullet_psys(struct level_cell *cell, int32_t x, int32_t y, int32_t dx, int32_t dy);
@@ -49,26 +49,16 @@ void ai_guard(struct mob *mob, int32_t dt)
 
 static void spawn_bullet_psys(struct level_cell *cell, int32_t x, int32_t y, int32_t dx, int32_t dy)
 {
-	struct psys *ps;
-
-	ps = malloc_nf(sizeof *ps);
-	*ps = psys_gunhit;
-	ps->x = x;
-	ps->y = y;
-
 	/* poor man's normalize */
 	if(dx > 0) {
-		dx = 0x100;
+		dx = 0x1000;
 	} else if(dx < 0) {
-		dx = -0x100;
+		dx = -0x1000;
 	}
 	if(dy > 0) {
-		dy = 0x100;
+		dy = 0x1000;
 	} else if(dy < 0) {
-		dy = -0x100;
+		dy = -0x1000;
 	}
-	ps->dirx = dx;
-	ps->diry = dy;
-
-	psys_add_emitter(&cell->psys, ps);
+	cell_spawn_psys(cell, x, y, dx, dy, &psys_gunhit);
 }
