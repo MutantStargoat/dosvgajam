@@ -27,12 +27,21 @@ struct psys {
 	struct psys *next;
 };
 
+/* prefabs */
+extern struct psys psys_blasthit, psys_gunhit, psys_flame;
+
+void psys_init_prefabs(void);
+
 void psys_init(struct psys *ps);
 void psys_destroy(struct psys *ps);
 int psys_update(struct psys *ps, long dt);
 void psys_draw(struct psys *ps);
 
+void psys_add_emitter(struct psys **pslist, struct psys *ps);
+void psys_upd_emitters(struct psys **pslist, long dt);
+
 struct particle *palloc(void);
 void pfree(struct particle *p);
+
 
 #endif	/* PSYS_H_ */

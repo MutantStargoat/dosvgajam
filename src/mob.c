@@ -101,38 +101,6 @@ void mob_state(struct mob *mob, int st)
 	mob->spr.frm = 0;
 }
 
-static INLINE int ray_step(struct level *lvl, int32_t x, int32_t y, int32_t dx,
-		int32_t dy, int32_t hslope, int32_t vslope,	int32_t *nx, int32_t *ny)
-{
-	int32_t x1, y1, offs;
-
-	/* convert to origin at upper-left, rather than center of cells, to make
-	 * stepping simpler
-	 */
-	x += 128;
-	y += 128;
-
-	/* find next boundaries when stepping horizontally or vertically */
-	x1 = (dx > 0 ? x + 256 : x - 1) & ~0xff;
-	/*hslope = (dy << 8) / dx;*/
-	y1 = y + ((hslope * (x1 - x)) >> 8);
-	offs = y1 - (y & ~0xff);
-
-	if(offs < 256 && offs >= 0) {
-		*nx = x1 - 128;
-		*ny = y1 - 128;
-		return dx > 0 ? DIR_E : DIR_W;
-	}
-
-	y1 = (dy > 0 ? y + 256 : y - 1) & ~0xff;
-	/*vslope = (dx << 8) / dy;*/
-	x1 = x + ((vslope * (y1 - y)) >> 8);
-
-	*nx = x1 - 128;
-	*ny = y1 - 128;
-	return dy > 0 ? DIR_S : DIR_N;
-}
-
 void mob_beam(struct mob *mob, int32_t tx, int32_t ty, int dmg)
 {
 	int i, exit_dir;

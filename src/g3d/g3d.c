@@ -6,10 +6,6 @@
 #include "util.h"
 #include "xmath.h"
 
-struct rect {
-	int x0, y0, x1, y1;
-};
-
 static int32_t mvmat[16];
 static int32_t pmat[16];
 static int32_t mvpmat[16];

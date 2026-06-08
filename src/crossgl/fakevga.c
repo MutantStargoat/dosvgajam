@@ -138,6 +138,16 @@ void vga_rect_outline(uint8_t *vmem, int x, int y, int w, int h, uint8_t color)
 	vga_hline(vmem, x + 1, y + h - 1, w - 2, color);
 }
 
+void vga_fillrect(uint8_t *vmem, int x, int y, int w, int h, uint8_t color)
+{
+	vmem += y * SCANLEN + x;
+
+	while(h-- > 0) {
+		memset(vmem, color, w);
+		vmem += SCANLEN;
+	}
+}
+
 static uint32_t *convbuf;
 static int convbuf_size;
 

@@ -10,6 +10,7 @@ enum {
 	MOB_IDLE,
 	MOB_WALK,
 	MOB_FIRE,
+	MOB_DEAD,
 
 	NUM_MOB_STATES
 };
@@ -42,6 +43,9 @@ struct mob {
 	struct level *lvl;
 	struct level_cell *cell;
 	struct beam beam;
+	int fire_cooldown;
+
+	void (*update)(struct mob*, int32_t);
 
 	struct mob *next;
 };

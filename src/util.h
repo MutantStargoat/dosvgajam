@@ -33,6 +33,10 @@
 #define PACKED
 #endif
 
+struct rect {
+	int x, y, w, h;
+};
+
 #define BSWAP16(x)	((((x) >> 8) & 0xff) | (((x) & 0xff) << 8))
 #define BSWAP32(x)	\
 	((((x) >> 24) & 0xff) | \

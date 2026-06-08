@@ -2,6 +2,7 @@
 #define APP_H_
 
 #include "szint.h"
+#include "mob.h"
 
 #define FB_WIDTH	320
 #define FB_HEIGHT	240
@@ -64,6 +65,10 @@ struct tileimg;
 extern struct tileimg *tile_inval;	/* invalid tile */
 /* current bitplane, to avoid passing it to EVERY drawing function */
 extern int cur_bpl;
+
+extern struct mob player;
+
+extern int showdbg;
 
 
 int app_init(void);

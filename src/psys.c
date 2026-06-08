@@ -5,9 +5,50 @@
 #include "vga.h"
 #include "app.h"
 
+struct color {
+	int r, g, b;
+};
+static struct color ramp_gun[] = {{255, 222, 166}, {192, 52, 38}, {67, 32, 32}};
+static struct color ramp_flame[] = {
+	{255, 245, 10}, {255, 180, 15}, {255, 64, 20}, {160, 40, 10}, {64, 8, 8}
+};
+
+#define CIDX_GUN0		200
+#define CIDX_GUN_LEN	(sizeof ramp_gun / sizeof *ramp_gun)
+#define CIDX_FLAME0		(CIDX_GUN0 + CIDX_GUN_LEN)
+#define CIDX_FLAME_LEN	(sizeof ramp_flame / sizeof *ramp_flame)
+
 #define MAX_PARTICLES	256
 static struct particle particles[MAX_PARTICLES];
 static struct particle *ppool;	/* free particle list (points into particles[]) */
+
+struct psys psys_blasthit, psys_gunhit, psys_flame;
+
+void psys_init_prefabs(void)
+{
+	int i;
+
+	for(i=0; i<CIDX_GUN_LEN; i++) {
+		vga_setpal(i ? -1 : i + CIDX_GUN0, ramp_gun[i].r, ramp_gun[i].g, ramp_gun[i].b);
+	}
+	for(i=0; i<CIDX_FLAME_LEN; i++) {
+		vga_setpal(-1, ramp_flame[i].r, ramp_flame[i].g, ramp_flame[i].b);
+	}
+
+	psys_init(&psys_gunhit);
+	psys_gunhit.emlife = 512;
+	psys_gunhit.rad = 0x100;
+	psys_gunhit.grav = -0x800;
+	psys_gunhit.colramp[0] = CIDX_GUN0;
+	psys_gunhit.colramp[1] = CIDX_GUN0 + CIDX_GUN_LEN;
+
+	psys_init(&psys_flame);
+	psys_flame.rad = 0x200;
+	psys_flame.grav = 0x800;
+	psys_flame.colramp[0] = CIDX_FLAME0;
+	psys_flame.colramp[1] = CIDX_FLAME0 + CIDX_FLAME_LEN;
+
+}
 
 
 void psys_init(struct psys *ps)
@@ -122,6 +163,35 @@ void psys_draw(struct psys *ps)
 #endif
 		p = p->next;
 	}
+}
+
+
+void psys_add_emitter(struct psys **pslist, struct psys *ps)
+{
+	ps->next = *pslist;
+	*pslist = ps;
+}
+
+void psys_upd_emitters(struct psys **pslist, long dt)
+{
+	struct psys *ps, *psprev, dummy;
+
+	dummy.next = *pslist;
+	psprev = &dummy;
+	while((ps = psprev->next)) {
+		printf("update psys with life: %ld\n", ps->emlife);
+
+		psys_update(ps, dt);
+
+		if(!ps->emlife && !ps->npart) {
+			psprev->next = ps->next;
+			free(ps);
+			continue;
+		}
+
+		psprev = psprev->next;
+	}
+	*pslist = dummy.next;
 }
 
 

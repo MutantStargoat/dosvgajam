@@ -13,10 +13,6 @@
 #define CELL_XSZ	(TILE_XSZ << 1)
 #define CELL_YSZ	(TILE_YSZ << 1)
 
-struct rect {
-	int x, y, w, h;
-};
-
 enum { DIR_N, DIR_W, DIR_S, DIR_E };
 enum { DIR8_N, DIR8_NW, DIR8_W, DIR8_SW, DIR8_S, DIR8_SE, DIR8_E, DIR8_NE };
 
@@ -91,6 +87,8 @@ int cell_remove_beamseg(struct level_cell *cell, struct beamseg *bs);
 void cell_add_psys(struct level_cell *cell, struct psys *ps);
 int cell_remove_psys(struct level_cell *cell, struct psys *ps);
 
+struct mob *raycast(struct level *lvl, int32_t x, int32_t y, int32_t dx, int32_t dy, struct mob *ignmob);
+
 /* implicit in these conversions is the tile size: 64x32 */
 static INLINE void vscr_to_grid(int sx, int sy, int32_t *gridx, int32_t *gridy)
 {
@@ -126,5 +124,38 @@ static INLINE void grid_to_cell(int32_t gx, int32_t gy, int *cx, int *cy)
 	*cx = (gx + 0x80) >> 8;
 	*cy = (gy + 0x80) >> 8;
 }
+
+static INLINE int ray_step(struct level *lvl, int32_t x, int32_t y, int32_t dx,
+		int32_t dy, int32_t hslope, int32_t vslope,	int32_t *nx, int32_t *ny)
+{
+	int32_t x1, y1, offs;
+
+	/* convert to origin at upper-left, rather than center of cells, to make
+	 * stepping simpler
+	 */
+	x += 128;
+	y += 128;
+
+	/* find next boundaries when stepping horizontally or vertically */
+	x1 = (dx > 0 ? x + 256 : x - 1) & ~0xff;
+	/*hslope = (dy << 8) / dx;*/
+	y1 = y + ((hslope * (x1 - x)) >> 8);
+	offs = y1 - (y & ~0xff);
+
+	if(offs < 256 && offs >= 0) {
+		*nx = x1 - 128;
+		*ny = y1 - 128;
+		return dx > 0 ? DIR_E : DIR_W;
+	}
+
+	y1 = (dy > 0 ? y + 256 : y - 1) & ~0xff;
+	/*vslope = (dx << 8) / dy;*/
+	x1 = x + ((vslope * (y1 - y)) >> 8);
+
+	*nx = x1 - 128;
+	*ny = y1 - 128;
+	return dy > 0 ? DIR_S : DIR_N;
+}
+
 
 #endif	/* LEVEL_H_ */

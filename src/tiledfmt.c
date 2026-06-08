@@ -7,6 +7,7 @@
 #include "json.h"
 #include "dynarr.h"
 #include "mob.h"
+#include "ai.h"
 
 struct tileprop {
 	int id;
@@ -435,6 +436,7 @@ static int load_gameobj(struct level *lvl, struct json_obj *jobj)
 				mob->x = gridx;
 				mob->y = gridy;
 				mob->rad = 64;
+				mob->update = ai_guard;
 				grid_to_cell(gridx, gridy, &cx, &cy);
 				mob->cell = get_level_cell(lvl, cx, cy);
 				mob->next = mob->cell->mobs;

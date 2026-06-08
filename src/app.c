@@ -7,6 +7,7 @@
 #include "g3d/g3d.h"
 #include "timer.h"
 #include "options.h"
+#include "psys.h"
 
 #ifndef NO_SOUND
 #include "audio.h"
@@ -22,6 +23,8 @@ struct app_screen *cur_scr;
 
 struct tileimg *tile_inval;
 int cur_bpl;
+
+int showdbg;
 
 /* available screens */
 #define MAX_SCREENS	8
@@ -40,6 +43,8 @@ int app_init(void)
 
 	g3d_init();
 	g3d_framebuffer(FB_WIDTH, FB_HEIGHT, 0);
+
+	psys_init_prefabs();
 
 	/* initialize screens */
 	screens[num_screens++] = &scr_menu;
@@ -108,6 +113,10 @@ void app_keyboard(int key, int press)
 		switch(key) {
 		case 27:
 			app_quit();
+			break;
+
+		case KEY_F3:
+			showdbg ^= 1;
 			break;
 		}
 	}

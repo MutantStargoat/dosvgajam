@@ -1,10 +1,12 @@
 #include <stdio.h>
+#include <limits.h>
 #include <assert.h>
 #include "level.h"
 #include "tiles.h"
 #include "util.h"
 #include "dynarr.h"
 #include "mob.h"
+#include "app.h"
 #include "psys.h"
 
 struct tileset tileset;
@@ -221,3 +223,82 @@ int cell_remove_psys(struct level_cell *cell, struct psys *ps)
 	}
 	return 0;
 }
+
+
+struct mob *raycast(struct level *lvl, int32_t x, int32_t y, int32_t dx, int32_t dy, struct mob *ignmob)
+{
+	int i, cx, cy, exit_dir;
+	int32_t hslope, vslope, nx, ny, rdx, rdy, hitx, hity;
+	struct level_cell *cell;
+	struct mob *cellmob, *hitmob;
+	int32_t hit_dist, t;
+
+	grid_to_cell(x, y, &cx, &cy);
+	if(!(cell = get_level_cell(lvl, cx, cy))) {
+		return 0;
+	}
+
+	hslope = dx ? (dy << 8) / dx : 256;
+	vslope = dy ? (dx << 8) / dy : 256;
+
+	for(i=0; i<MAX_BEAM_SEG; i++) {
+		exit_dir = ray_step(lvl, x, y, dx, dy, hslope, vslope, &nx, &ny);
+
+		rdx = nx - x;
+		rdy = ny - y;
+
+		hitmob = 0;
+		hit_dist = INT_MAX;
+
+		if(ignmob != &player) {
+			if((t = mob_rayhit(&player, x, y, rdx, rdy, &hitx, &hity)) >= 0) {
+				hitmob = &player;
+				hit_dist = t;
+			}
+		}
+
+		cellmob = cell->mobs;
+		while(cellmob) {
+			if(cellmob != ignmob) {
+				if((t = mob_rayhit(cellmob, x, y, rdx, rdy, &hitx, &hity)) >= 0 && t < hit_dist) {
+					hitmob = cellmob;
+					hit_dist = t;
+				}
+			}
+			cellmob = cellmob->next;
+		}
+
+		if(hitmob) {
+			return hitmob;
+		}
+
+		if(!(cell->flags & CELL_EXIT(exit_dir))) {
+			break;
+		}
+
+		switch(exit_dir) {
+		case DIR_E:
+			if(cell->cx >= lvl->size - 1) goto break_loop;
+			cell++;
+			break;
+		case DIR_W:
+			if(cell->cx <= 0) goto break_loop;
+			cell--;
+			break;
+		case DIR_S:
+			if(cell->cy >= lvl->size - 1) goto break_loop;
+			cell += lvl->size;
+			break;
+		case DIR_N:
+			if(cell->cy <= 0) goto break_loop;
+			cell -= lvl->size;
+			break;
+		}
+
+		x = nx;
+		y = ny;
+	}
+break_loop:
+	return 0;
+}
+

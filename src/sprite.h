@@ -23,6 +23,11 @@ struct sprite {
 int define_spranim(struct tileset *ts, struct spranim *sa, int nfrm, int x, int y,
 		int w, int h);
 
+/* same, but define only one direction, and use it for all */
+int define_spranim_onedir(struct tileset *ts, struct spranim *sa, int nfrm, int x,
+		int y, int w, int h);
+
+
 void spr_origin(struct sprite *spr, int x, int y);
 
 void spr_draw(struct sprite *spr, int x, int y, int dir);

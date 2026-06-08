@@ -19,6 +19,20 @@ int define_spranim(struct tileset *ts, struct spranim *sa, int nfrm, int x, int 
 	return 0;
 }
 
+int define_spranim_onedir(struct tileset *ts, struct spranim *sa, int nfrm, int x,
+		int y, int w, int h)
+{
+	int i;
+
+	if(!(sa->seq[0] = tileseq_define(ts, nfrm, x, y, w, h, w, 0))) {
+		return -1;
+	}
+	for(i=1; i<NUM_DIRS; i++) {
+		sa->seq[i] = sa->seq[i - 1];
+	}
+	return 0;
+}
+
 void spr_origin(struct sprite *spr, int x, int y)
 {
 	int i, j;

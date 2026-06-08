@@ -12,10 +12,12 @@
 #include "dynarr.h"
 #include "psys.h"
 
-#define BEAM_DMG	8
+#define BEAM_DMG	32
 #define BEAM_COL	253
+#define RED_COL		(BEAM_COL - 1)
 #define BEAM_HEIGHT	16
 #define BEAM_DUR	100
+#define GUN_DUR		600
 
 #ifndef NO_SOUND
 #include "audio.h"
@@ -32,6 +34,8 @@ static struct au_music *mus;
 #define COL_SIZE		(CELL_XSZ >> 1)
 #define ROW_SIZE		(CELL_YSZ >> 1)
 
+struct mob player;
+
 static int vsync;
 static int prev_mx, prev_my;
 
@@ -46,10 +50,7 @@ static long last_fps_upd, nframes;
 static struct tileimg *font[96];
 static int text_color = 0xff;
 
-static struct mob player;
-
 static int dbg_hide_walls;
-static struct psys psys;
 
 static struct au_sample *sfx_laser;
 
@@ -105,14 +106,17 @@ static int scrgame_init(void)
 	}
 
 	init_mob(&player);
+	player.rad = 64;
 	define_spranim(&tileset, player.spr.anim + MOB_IDLE, 1, 0, 256, 32, 32);
 	define_spranim(&tileset, player.spr.anim + MOB_WALK, 8, 32, 256, 32, 32);
 	define_spranim(&tileset, player.spr.anim + MOB_FIRE, 1, 288, 256, 32, 32);
+	define_spranim(&tileset, player.spr.anim + MOB_DEAD, 1, 320, 256, 32, 32);
 	spr_origin(&player.spr, 16, 28);
 
 	memset(&sprmob, 0, sizeof sprmob);
 	define_spranim(&tileset, sprmob.anim + MOB_IDLE, 1, 448, 256, 32, 32);
 	define_spranim(&tileset, sprmob.anim + MOB_FIRE, 1, 448 + 32, 256, 32, 32);
+	define_spranim_onedir(&tileset, sprmob.anim + MOB_DEAD, 4, 384, 512, 32, 32);
 	spr_origin(&sprmob, 16, 28);
 
 	for(i=0; i<dynarr_size(lvl.mobs); i++) {
@@ -152,6 +156,7 @@ static int scrgame_start(void)
 		vga_setpal(-1, tileset.cmap[i].r, tileset.cmap[i].g, tileset.cmap[i].b);
 	}
 	vga_setpal(0xff, 0xff, 0xff, 0xff);
+	vga_setpal(RED_COL, 255, 0, 0);
 
 	vga_setpal(BEAM_COL, 92, 92, 160);
 	vga_setpal(BEAM_COL+1, 192, 192, 255);
@@ -178,18 +183,6 @@ static int scrgame_start(void)
 		mob_state(lvl.mobs[i], MOB_IDLE);
 	}
 
-	vga_setpal(220, 255, 245, 10);
-	vga_setpal(221, 255, 180, 15);
-	vga_setpal(222, 255, 64, 20);
-	vga_setpal(223, 160, 40, 10);
-	vga_setpal(224, 64, 8, 8);
-
-	psys_init(&psys);
-	psys.rad = 0x200;
-	psys.grav = 0x800;
-	psys.colramp[0] = 220;
-	psys.colramp[1] = 225;
-
 #ifndef NO_SOUND
 	if(mus) {
 		au_play_music(mus);
@@ -211,8 +204,6 @@ static void scrgame_stop(void)
 	}
 #endif
 	vga_setpitch(80);
-
-	psys_destroy(&psys);
 }
 
 #define SCROLL_SPEED	1
@@ -223,6 +214,7 @@ static void update(void)
 	int i, j, x, y, dx, dy;
 	int32_t gx, gy;
 	struct level_cell *cell;
+	struct mob *mob;
 
 	dt = time_msec - prev_upd;
 	if(dt < 16) return;
@@ -242,6 +234,15 @@ static void update(void)
 	if(app_keydown(KEY_RIGHT) || app_keydown('d')) {
 		dx += SCROLL_SPEED * dt >> 2;
 	}
+
+	player.hp -= player.dmg;
+	player.dmg = 0;
+	if(player.hp <= 0) {
+		player.hp = 0;
+		mob_state(&player, MOB_DEAD);
+	}
+
+	if(player.state == MOB_DEAD) goto skip_player;
 
 	if(player.state == MOB_FIRE) {
 		if(player.state_t == 0) {
@@ -266,8 +267,20 @@ static void update(void)
 			scrollto(player.x, player.y);
 		}
 	}
+skip_player:
 
 	player.state_t += dt;
+
+	/* apply damage to mobs */
+	for(i=0; i<dynarr_size(lvl.mobs); i++) {
+		mob = lvl.mobs[i];
+		mob->hp -= mob->dmg;
+		mob->dmg = 0;
+		if(mob->hp <= 0) {
+			mob->hp = 0;
+			mob_state(mob, MOB_DEAD);
+		}
+	}
 
 	/* compute the list of visible cells */
 	num_vis = 0;
@@ -286,6 +299,27 @@ static void update(void)
 				viscells[num_vis++] = cell;
 				cell->x = x;
 				cell->y = y;
+
+				/* update mobs in this cell */
+				mob = cell->mobs;
+				while(mob) {
+					if(mob->update) {
+						mob->update(mob, dt);
+					}
+
+					if(mob->state == MOB_FIRE) {
+						if(mob->state_t == 0) {
+							/* TODO play sound */
+						} else if(mob->state_t >= GUN_DUR) {
+							mob_state(mob, MOB_IDLE);
+						}
+					}
+					mob = mob->next;
+				}
+
+				/* update particles in this cell */
+				psys_upd_emitters(&cell->psys, dt);
+
 #ifndef DRAW_FULL
 			}
 #endif
@@ -293,8 +327,6 @@ static void update(void)
 			cell++;
 		}
 	}
-
-	psys_update(&psys, dt);
 }
 
 static char fps_text[32];
@@ -381,7 +413,9 @@ static void draw_bitplane(int bpl)
 
 				if(cell->cx == player_cx && cell->cy == player_cy) {
 					grid_to_vscr(player.x, player.y, &x, &y);
-					tiles_blit_rle(seltile, cell->x, cell->y, bpl);
+					if(showdbg) {
+						tiles_blit_rle(seltile, cell->x, cell->y, bpl);
+					}
 
 					spr_draw(&player.spr, x - xscroll, y - yscroll, player.dir);
 				}
@@ -389,12 +423,15 @@ static void draw_bitplane(int bpl)
 		}
 	}
 
-	/*for(i=0; i<4; i++) {
-		int yoffs = i * 8;
-		draw_line(100 + i, 100 + yoffs, 140 + i, 180 + yoffs, 0xff);
-	}*/
-
-	psys_draw(&psys);
+	/* draw UI */
+#ifdef VGA_LFB
+	if(cur_bpl == 0)
+#endif
+	{
+		vga_rect_outline(vga_backbuf, 23, 1, 68, 16, 255);
+		vga_fillrect(vga_backbuf, 25, 3, player.hp >> 2, 12, RED_COL);
+	}
+	gprintf(5, 5, "HP %3d/256", player.hp);
 
 	vscr_to_grid(mouse_x + xscroll, mouse_y + yscroll, &mouse_gx, &mouse_gy);
 	mouse_gx -= 128;
@@ -402,9 +439,11 @@ static void draw_bitplane(int bpl)
 
 	tiles_blit_rle(cursors[mouse_mode], mouse_x, mouse_y, bpl);
 
-	gprintf(0, 0, fps_text);
-	gprintf(90, 0, "vis:%d", num_vis);
-	gprintf(160, 0, "cell:%d,%d %s", player_cx, player_cy, strcellflags(player.cell->flags));
+	if(showdbg) {
+		gprintf(160, 0, fps_text);
+		gprintf(260, 0, "vis:%d", num_vis);
+		gprintf(160, 10, "cell:%d,%d %s", player_cx, player_cy, strcellflags(player.cell->flags));
+	}
 }
 
 static void scrgame_keyb(int key, int press)
