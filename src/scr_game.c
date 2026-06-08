@@ -473,11 +473,11 @@ static void draw_bitplane(int bpl)
 	if(cur_bpl == 0)
 #endif
 	{
-		vga_rect_outline(vga_backbuf, 23, 1, 68, 16, 255);
-		vga_fillrect(vga_backbuf, 25, 3, player.hp >> 2, 12, RED_COL);
+		vga_rect_outline(vga_backbuf, 92, 2, 68, 16, 255);
+		vga_fillrect(vga_backbuf, 94, 4, player.hp >> 2, 12, RED_COL);
 		vga_planemask(1 << bpl);
 	}
-	gprintf(5, 5, "HP %3d/256", player.hp);
+	gprintf(6, 6, "HP %3d/256", player.hp);
 
 	vscr_to_grid(mouse_x + xscroll, mouse_y + yscroll, &mouse_gx, &mouse_gy);
 	mouse_gx -= 128;
