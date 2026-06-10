@@ -469,12 +469,9 @@ static void draw_bitplane(int bpl)
 	}
 
 	/* draw UI */
-#ifdef VGA_LFB
-	if(cur_bpl == 0)
-#endif
-	{
-		vga_rect_outline(vga_backbuf, 92, 2, 68, 16, 255);
-		vga_fillrect(vga_backbuf, 94, 4, player.hp >> 2, 12, RED_COL);
+	if(cur_bpl == 0) {
+		vga_rect_outline(vga_backbuf, 23, 2, 68, 16, 255);
+		vga_fillrect(vga_backbuf, 25, 4, player.hp >> 2, 12, RED_COL);
 		vga_planemask(1 << bpl);
 	}
 	gprintf(6, 6, "HP %3d/256", player.hp);
