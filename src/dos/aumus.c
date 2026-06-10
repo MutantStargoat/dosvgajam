@@ -176,4 +176,32 @@ int au_music_getvolume(void)
 {
 	return volume;
 }
+
+#else
+
+int au_music_init(void)
+{
+	return 0;
+}
+
+void au_music_shutdown(void)
+{
+}
+
+struct au_music *au_music_playing(void)
+{
+	return 0;
+}
+
+static int dummy_vol;
+
+void au_music_volume(int vol)
+{
+	dummy_vol = vol;
+}
+
+int au_music_getvolume(void)
+{
+	return dummy_vol;
+}
 #endif
