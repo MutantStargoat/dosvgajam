@@ -222,10 +222,11 @@ mat_mult_:
 	; eax: Ax, edx: Ay, ebx: Bx, ecx: By
 	global vec2_dot_
 vec2_dot_:
+	push edx
 	imul ebx
 	shrd eax, edx, 8
 	mov ebx, eax
-	mov eax, edx
+	pop eax
 	imul ecx
 	shrd eax, edx, 8
 	add eax, ebx
